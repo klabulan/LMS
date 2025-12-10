@@ -3,7 +3,7 @@
 
 function renderStudentDashboard() {
   const user = getCurrentUser();
-  const enrollments = Data.getEnrollmentsByStudent(user.id);
+  const enrollments = Data.getEnrollmentsByStudent(user.id).filter(e => e.status !== 'pending_approval');
   const upcomingDeadlines = Data.getUpcomingDeadlines(user.id, 5);
 
   // Get enrolled course IDs to filter recommendations
@@ -12,10 +12,15 @@ function renderStudentDashboard() {
     return course?.templateId;
   }).filter(Boolean);
 
-  // Recommended courses (public courses not enrolled in)
+  // Recommended courses (published courses not enrolled in)
   const recommendedCourses = Data.courseTemplates
-    .filter(c => c.isPublic && !enrolledCourseIds.includes(c.id))
+    .filter(c => c.status === 'published' && !enrolledCourseIds.includes(c.id))
     .slice(0, 3);
+
+  // Pending enrollments for approval requests section
+  const pendingEnrollments = Data.enrollments.filter(
+    e => e.studentId === user.id && e.status === 'pending_approval'
+  );
 
   return `
     <div class="main-header">
@@ -46,6 +51,13 @@ function renderStudentDashboard() {
                   </span>
                 </div>
                 <div class="card-meta">${course.code} • ${course.cohort}</div>
+
+                <div style="font-size:12px; color:#6b7280; margin-top:6px;">
+                  ${course.status === 'active' ?
+                    `Идёт с ${Data.formatDate(course.startDate)}` :
+                    `Запланирован на ${Data.formatDate(course.startDate)}`
+                  }
+                </div>
 
                 <div style="margin-top:8px;">
                   <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
@@ -87,6 +99,45 @@ function renderStudentDashboard() {
             </div>
           ` : ""}
         </div>
+
+        <!-- Заявки на рассмотрении -->
+        ${pendingEnrollments.length > 0 ? `
+          <h2 style="font-size:16px; font-weight:600; margin-bottom:12px; margin-top:24px;">
+            Заявки на рассмотрении
+          </h2>
+          <div class="cards-grid" style="grid-template-columns:1fr;">
+            ${pendingEnrollments.map(enrollment => {
+              const instance = Data.getCourseInstance(enrollment.courseInstanceId);
+              const template = Data.getCourseTemplate(instance.courseTemplateId);
+
+              return `
+                <div class="card" style="border:2px solid #fbbf24;">
+                  <div class="card-header-line">
+                    <div class="card-title">${template.title}</div>
+                    <span class="pill" style="background:#fef3c7; color:#92400e;">
+                      ${Data.formatStatusLabel('pending_approval')}
+                    </span>
+                  </div>
+                  <div class="card-meta">${instance.cohort}</div>
+                  <div style="font-size:12px; color:#6b7280; margin-top:8px;">
+                    Подана: ${Data.formatDate(enrollment.enrolledAt)}
+                  </div>
+                  ${enrollment.requestComment ? `
+                    <div style="margin-top:8px; padding:8px; background:#f9fafb; border-radius:8px; font-size:12px;">
+                      <strong>Ваш комментарий:</strong><br>
+                      ${enrollment.requestComment}
+                    </div>
+                  ` : ''}
+                  <div style="margin-top:auto; padding-top:12px;">
+                    <button class="btn btn-ghost btn-sm" onclick="cancelRequest('${enrollment.id}')">
+                      Отменить заявку
+                    </button>
+                  </div>
+                </div>
+              `;
+            }).join("")}
+          </div>
+        ` : ''}
 
         <!-- Рекомендованные курсы -->
         ${recommendedCourses.length > 0 ? `
@@ -262,33 +313,13 @@ function renderStudentCoursePage(courseInstanceId, enrollmentId) {
         <div class="field-label">Описание курса</div>
         <div class="field-value">${course.description}</div>
 
-        ${enrollment.credentials ? `
+        ${enrollment.allocatedResources ? `
           <div style="margin-top:20px; padding:12px; background:#eff6ff; border-radius:10px; border:1px solid #bfdbfe;">
             <div style="font-weight:500; margin-bottom:8px; font-size:13px; color:#1e40af;">
-              🖥️ Учебный стенд B3
+              🖥️ Выделенные ресурсы
             </div>
             <div style="font-size:12px; line-height:1.6;">
-              <div style="margin-bottom:4px;">
-                <strong>URL:</strong>
-                <a href="${enrollment.credentials.vm_url}" target="_blank" style="color:#2563eb;">
-                  ${enrollment.credentials.vm_url}
-                </a>
-              </div>
-              <div style="margin-bottom:4px;">
-                <strong>Логин:</strong>
-                <code style="background:#fff; padding:2px 6px; border-radius:4px; font-size:11px;">
-                  ${enrollment.credentials.username}
-                </code>
-              </div>
-              <div style="margin-bottom:4px;">
-                <strong>Пароль:</strong>
-                <code style="background:#fff; padding:2px 6px; border-radius:4px; font-size:11px;">
-                  ${enrollment.credentials.password}
-                </code>
-              </div>
-              <div style="font-size:11px; color:#6b7280; margin-top:8px;">
-                Доступ действителен до ${Data.formatDate(enrollment.credentials.expires_at)}
-              </div>
+              <pre style="white-space:pre-wrap; font-family:inherit; margin:0;">${enrollment.allocatedResources}</pre>
             </div>
           </div>
         ` : ""}
@@ -351,9 +382,6 @@ function renderStudentAssignmentPage(courseInstanceId, enrollmentId, assignmentT
   const dialog = Data.dialogs.find(d => d.type === "assignment" && d.referenceId === assignmentInstance?.id);
   const messages = dialog ? Data.getMessagesForDialog(dialog.id) : [];
 
-  const dueDate = Data.computeDueDate(enrollment.enrolledAt, assignment.dueDays);
-  const daysLeft = Data.getDaysUntilDeadline(dueDate);
-
   // Check if this is the first assignment (introductory)
   const isFirstAssignment = assignment.order === 1;
 
@@ -384,14 +412,6 @@ function renderStudentAssignmentPage(courseInstanceId, enrollmentId, assignmentT
             <span class="pill status-draft">Не начато</span>
           `}
         </div>
-
-        ${dueDate ? `
-          <div style="margin-bottom:12px;">
-            <span class="tag ${daysLeft <= 1 ? "tag-warning" : ""}">
-              Срок сдачи: ${Data.formatDate(dueDate)} (${Data.formatDaysRemaining(daysLeft)})
-            </span>
-          </div>
-        ` : ""}
 
         <div class="field-label">Описание задания</div>
         <div class="field-value">${assignment.description}</div>
@@ -505,34 +525,14 @@ function renderStudentAssignmentPage(courseInstanceId, enrollmentId, assignmentT
             Обсуждение задания
           </div>
 
-          ${isFirstAssignment && enrollment.credentials ? `
+          ${isFirstAssignment && enrollment.allocatedResources ? `
             <!-- Доступ к стенду для первого задания -->
             <div style="padding:12px; background:#eff6ff; border-radius:8px; border:1px solid #bfdbfe; margin-bottom:12px;">
               <div style="font-weight:500; margin-bottom:8px; font-size:13px; color:#1e40af;">
-                🖥️ Доступ к учебному стенду B3
+                🖥️ Выделенные ресурсы
               </div>
               <div style="font-size:12px; line-height:1.6;">
-                <div style="margin-bottom:4px;">
-                  <strong>URL:</strong>
-                  <a href="${enrollment.credentials.vm_url}" target="_blank" style="color:#2563eb;">
-                    ${enrollment.credentials.vm_url}
-                  </a>
-                </div>
-                <div style="margin-bottom:4px;">
-                  <strong>Логин:</strong>
-                  <code style="background:#fff; padding:2px 6px; border-radius:4px; font-size:11px;">
-                    ${enrollment.credentials.username}
-                  </code>
-                </div>
-                <div style="margin-bottom:4px;">
-                  <strong>Пароль:</strong>
-                  <code style="background:#fff; padding:2px 6px; border-radius:4px; font-size:11px;">
-                    ${enrollment.credentials.password}
-                  </code>
-                </div>
-                <div style="font-size:11px; color:#6b7280; margin-top:8px;">
-                  Доступ действителен до ${Data.formatDate(enrollment.credentials.expires_at)}
-                </div>
+                <pre style="white-space:pre-wrap; font-family:inherit; margin:0;">${enrollment.allocatedResources}</pre>
               </div>
             </div>
           ` : ""}
@@ -926,4 +926,19 @@ function calculateProgressByModule(assignments, assignmentInstances) {
   }
 
   return modules;
+}
+
+// ============================================================================
+// CANCEL REQUEST FUNCTION
+// ============================================================================
+
+function cancelRequest(enrollmentId) {
+  if (confirm('Вы уверены, что хотите отменить заявку?')) {
+    const idx = Data.enrollments.findIndex(e => e.id === enrollmentId);
+    if (idx !== -1) {
+      Data.enrollments.splice(idx, 1);
+      renderStudentDashboard();
+      alert('Заявка отменена');
+    }
+  }
 }

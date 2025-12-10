@@ -2,8 +2,8 @@
 // Экраны для анонимных пользователей
 
 function renderLandingPage() {
-  const featuredCourses = Data.courseTemplates.filter(c => c.isPublic).slice(0, 3);
-  const allCourses = Data.courseTemplates.filter(c => c.isPublic);
+  const featuredCourses = Data.courseTemplates.filter(c => c.status === 'published' && c.accessibility === 'public').slice(0, 3);
+  const allCourses = Data.courseTemplates.filter(c => c.status === 'published' && c.accessibility === 'public');
 
   return `
     <div class="main-header">
@@ -165,7 +165,7 @@ function renderLandingPage() {
 }
 
 function renderCatalogPage() {
-  let courses = Data.courseTemplates.filter(c => c.isPublic);
+  let courses = Data.courseTemplates.filter(c => c.status === 'published' && c.accessibility === 'public');
 
   // Apply search filter
   if (state.searchQuery) {
@@ -182,7 +182,7 @@ function renderCatalogPage() {
     courses = courses.filter(c => c.level === state.levelFilter);
   }
 
-  const totalCourses = Data.courseTemplates.filter(c => c.isPublic).length;
+  const totalCourses = Data.courseTemplates.filter(c => c.status === 'published' && c.accessibility === 'public').length;
 
   return `
     ${renderBreadcrumbs([
@@ -366,8 +366,7 @@ function renderCourseDetailPage(courseTemplateId) {
                   ${assignment.order}. ${assignment.title}
                 </div>
                 <div style="font-size:12px; color:#6b7280; margin-top:2px;">
-                  ${Data.formatAssignmentType(assignment.type)} •
-                  ${assignment.dueDays} дней
+                  ${Data.formatAssignmentType(assignment.type)}
                 </div>
               </div>
             </div>
@@ -406,7 +405,7 @@ function showLoginModal() {
 }
 
 function showRegistrationModal(preselectedCourseId = null) {
-  const courses = Data.courseTemplates.filter(c => c.isPublic);
+  const courses = Data.courseTemplates.filter(c => c.status === 'published' && c.accessibility === 'public');
 
   const content = `
     <div style="font-size:13px; line-height:1.6; margin-bottom:16px;">

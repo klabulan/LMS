@@ -25,7 +25,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 │  - b3-architect: Design, planning, architecture             │
 │  - Explore: Research, codebase exploration                  │
 │  - Plan: Implementation planning                            │
-│  - General-purpose: Complex multi-step implementation       │
+│  - general-purpose: Complex multi-step implementation       │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -52,12 +52,71 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **B3 Learning Portal** - Training platform for B3 low-code platform, built ON B3 itself.
 
-**State**: Prototype phase (`proto.html` demonstrates UX). Moving to B3 implementation.
+**State**: Prototype phase complete. Modular prototype in `proto/` demonstrates full UX for 5 roles (guest, student, teacher, methodist, admin). Moving to B3 implementation.
 
 **Key Docs** (agents MUST read these):
+- `doc/01_general_description.md` - System overview and scope
+- `doc/02_roles.md` - Role definitions and permissions matrix
+- `doc/03_entities.md` - Data model entities
+- `doc/04_ui_ux.md` - UI/UX specifications
 - `Tasks/init/gpt_design.md` - Architecture proposal (ESSENTIAL)
 - `Tasks/init/references.md` - LMS platform research (7+ platforms)
 - `Tasks/init/initial_requirememtns.md` - Original requirements
+
+**Reference Analysis** (deep dives on LMS platforms):
+- `Tasks/20251210_reference_systems_analysis/` - Canvas, Moodle, Coursera, SAP Litmos, Docebo, D2L Brightspace, Absorb analysis
+
+---
+
+## Prototype Architecture
+
+**Location**: `proto/` folder
+**Entry point**: `proto/index-modular.html`
+
+```
+proto/
+├── index-modular.html    # Entry, role selector
+├── styles.css            # Shared styles
+├── data.js               # Mock data (courses, users, assignments)
+└── modules/
+    ├── state.js          # Global state
+    ├── helpers.js        # Utilities (modal, breadcrumbs)
+    ├── navigation.js     # Role switching
+    ├── guest.js          # Public catalog, registration
+    ├── student.js        # Dashboard, courses, assignments
+    ├── teacher.js        # Grading, gradebook, communication
+    ├── methodist.js      # Course template editor
+    ├── admin.js          # User management, approvals
+    └── main.js           # Render & initialization
+```
+
+**Running Prototype**:
+```bash
+# Requires local server (CORS restrictions for ES modules)
+npx http-server -p 8080
+# Open: http://localhost:8080/proto/index-modular.html
+```
+
+Root `index.html` redirects to prototype for GitHub Pages hosting.
+
+### ER Viewer (Data Model Visualizer)
+
+**Location**: `proto/er-viewer/`
+
+Интерактивная визуализация ER-диаграммы и статусных переходов на vis.js.
+
+**При изменении `doc/03_entities.md` обновить `proto/er-viewer/data.js`:**
+
+| Что изменилось | Что править в data.js |
+|----------------|----------------------|
+| Новая сущность | Добавить объект в `entities[]` |
+| Новый атрибут | Добавить в `attributes[]` нужной сущности |
+| Новый статус | Добавить в `statuses[]` нужной сущности |
+| Новый переход | Добавить в `transitions[]` нужной сущности |
+| Новая связь | Добавить в `relations[]` |
+| Позиция узла | Править `positionMap` в `app.js` → `initERGraph()` |
+
+Подробнее: `proto/er-viewer/README.md`
 
 ---
 
@@ -109,7 +168,7 @@ Every medium/large task MUST follow:
 
 ## Task Documentation
 
-All medium/large tasks create artifacts:
+All medium/large tasks create artifacts in `Tasks/YYYYMMDD_task_name/`:
 
 ```
 Tasks/YYYYMMDD_task_name/
@@ -123,11 +182,17 @@ Tasks/YYYYMMDD_task_name/
 └── reflection.md           # Post-completion lessons
 ```
 
+**Special folders**:
+- `Tasks/init/` - Initial research, requirements, architecture proposal
+- `Tasks/20251209_b3_lms_implementation/` - Implementation design specs
+- `Tasks/20251210_reference_systems_analysis/` - LMS platform deep dives
+- `Tasks/20251210_prototype_gap_analysis/` - Prototype vs B3 gap analysis
+
 ---
 
 ## B3 Platform Quick Reference
 
-**Data Model** (from gpt_design.md):
+**Data Model** (from doc/03_entities.md):
 ```
 Шаблон курса → Шаблон задания
 Экземпляр курса → Запись на курс → Экземпляр задания → Диалог
@@ -155,4 +220,5 @@ Tasks/YYYYMMDD_task_name/
 3. **Parallel agents** - independent tasks in ONE message with multiple Task calls
 4. **Memory bank first** - check lessons before proposing new solutions
 5. **TodoWrite always** - track progress for medium/large tasks
-6. **Reference docs** - `gpt_design.md` is the architecture bible
+6. **Reference docs** - `doc/*.md` files are specifications, `gpt_design.md` is architecture bible
+7. **Prototype is modular** - `proto/index-modular.html` + modules/, NOT single file

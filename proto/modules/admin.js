@@ -1,8 +1,10 @@
 // B3 Learning Portal - Admin Screens Module
 // Экраны для администраторов
 
+const Admin = {};
+
 function renderAdminDashboard() {
-  const pendingRequests = Data.getPendingRequests();
+  const pendingCount = Data.enrollments.filter(e => e.status === 'pending_approval').length;
   const totalCourses = Data.courseTemplates.length;
   const totalInstances = Data.courseInstances.length;
   const totalStudents = Object.values(Data.mockUsers).filter(u => u.role === 'student').length;
@@ -28,16 +30,17 @@ function renderAdminDashboard() {
       </div>
       <div class="card">
         <div class="card-title">Заявок на рассмотрении</div>
-        <div style="font-size:32px;font-weight:600;color:${pendingRequests.length > 0 ? '#f97316' : 'inherit'};">
-          ${pendingRequests.length}
+        <div style="font-size:32px;font-weight:600;color:${pendingCount > 0 ? '#f97316' : 'inherit'};">
+          ${pendingCount}
         </div>
       </div>
     </div>
   `;
 
-  const recentRequestsHtml = pendingRequests.slice(0, 3).map(req => {
-    const user = Data.getUserById(req.userId);
-    const instance = Data.getCourseInstance(req.courseInstanceId);
+  const pendingEnrollments = Data.enrollments.filter(e => e.status === 'pending_approval').slice(0, 3);
+  const recentRequestsHtml = pendingEnrollments.map(enrollment => {
+    const user = Data.getUserById(enrollment.studentId);
+    const instance = Data.getCourseInstance(enrollment.courseInstanceId);
     const template = instance ? Data.getCourseTemplate(instance.courseTemplateId) : null;
 
     return `
@@ -45,11 +48,11 @@ function renderAdminDashboard() {
         <div class="card-header-line">
           <div>
             <div class="card-title">${user?.name || 'Неизвестный'}</div>
-            <div class="card-meta">Курс: ${template?.title || 'Неизвестный'} · ${Data.formatDateTime(req.createdAt)}</div>
+            <div class="card-meta">Курс: ${template?.title || 'Неизвестный'} · ${Data.formatDateTime(enrollment.enrolledAt)}</div>
           </div>
           <span class="pill status-pending">Ожидает</span>
         </div>
-        ${req.comment ? `<div class="card-meta" style="margin-top:4px;">«${req.comment}»</div>` : ''}
+        ${enrollment.requestComment ? `<div class="card-meta" style="margin-top:4px;">«${enrollment.requestComment}»</div>` : ''}
       </div>
     `;
   }).join("") || '<div class="main-subtitle">Нет заявок на рассмотрении</div>';
@@ -71,7 +74,7 @@ function renderAdminDashboard() {
       <section style="margin-bottom:20px;">
         <h2 style="font-size:14px;margin:6px 0 8px;">Быстрые действия</h2>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn" id="btnViewRequests">Заявки на запись (${pendingRequests.length})</button>
+          <button class="btn" id="btnViewRequests">Заявки на запись (${pendingCount})</button>
           <button class="btn btn-ghost" id="btnManageInstances">Экземпляры курсов</button>
           <button class="btn btn-ghost" id="btnManageUsers">Управление пользователями</button>
           <button class="btn btn-ghost" id="btnViewReports">Отчёты</button>
@@ -81,7 +84,7 @@ function renderAdminDashboard() {
       <section>
         <h2 style="font-size:14px;margin:6px 0 8px;">Последние заявки</h2>
         ${recentRequestsHtml}
-        ${pendingRequests.length > 3 ? `
+        ${pendingCount > 3 ? `
           <div style="margin-top:8px;">
             <button class="btn btn-ghost btn-sm" id="btnViewAllRequests">Показать все заявки</button>
           </div>
@@ -92,85 +95,128 @@ function renderAdminDashboard() {
 }
 
 function renderEnrollmentRequests() {
-  const allRequests = Data.getAllRequests();
+  // Get enrollments with pending_approval status
+  const pendingEnrollments = Data.enrollments.filter(e => e.status === 'pending_approval');
 
-  const requestsHtml = allRequests.map(req => {
-    const user = Data.getUserById(req.userId);
-    const instance = Data.getCourseInstance(req.courseInstanceId);
-    const template = instance ? Data.getCourseTemplate(instance.courseTemplateId) : null;
-    const reviewer = req.reviewedBy ? Data.getUserById(req.reviewedBy) : null;
+  let html = `
+    <div class="container mt-4">
+      <h2 class="mb-4">
+        <i class="bi bi-clipboard-check me-2"></i>
+        Согласование заявок на курсы
+      </h2>
 
-    const statusClass = req.status === 'approved' ? 'status-accepted' :
-                       req.status === 'rejected' ? 'status-needs_revision' :
-                       'status-pending';
+      ${pendingEnrollments.length === 0 ? `
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle me-2"></i>
+          Нет заявок на согласовании
+        </div>
+      ` : `
+        <div class="alert alert-warning">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          Найдено заявок на согласовании: <strong>${pendingEnrollments.length}</strong>
+        </div>
+      `}
 
-    return `
-      <div class="card" style="padding:12px;">
-        <div class="card-header-line">
-          <div>
-            <div class="card-title">${user?.name || 'Неизвестный'}</div>
-            <div class="card-meta">
-              ${user?.organization || 'Без организации'} ·
-              ${user?.position || 'Без должности'}
+      <div class="row">
+  `;
+
+  pendingEnrollments.forEach(enrollment => {
+    const student = Data.getUserById(enrollment.studentId);
+    const instance = Data.getCourseInstance(enrollment.courseInstanceId);
+    const template = Data.getCourseTemplate(instance.courseTemplateId);
+
+    html += `
+      <div class="col-md-6 mb-3">
+        <div class="card border-warning">
+          <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0">
+              <i class="bi bi-person me-2"></i>
+              ${student.name}
+            </h5>
+          </div>
+          <div class="card-body">
+            <p class="mb-2"><strong>Курс:</strong> ${template.title}</p>
+            <p class="mb-2"><strong>Учебная группа:</strong> ${instance.cohort}</p>
+            <p class="mb-2"><strong>Организация:</strong> ${student.organization || 'Не указана'}</p>
+            <p class="mb-2"><strong>Дата подачи:</strong> ${Data.formatDateTime(enrollment.enrolledAt)}</p>
+            ${enrollment.requestComment ? `
+              <div class="alert alert-light small mb-3">
+                <strong>Комментарий студента:</strong><br>
+                ${enrollment.requestComment}
+              </div>
+            ` : ''}
+            <div class="btn-group w-100" role="group">
+              <button class="btn btn-success" onclick="Admin.approveEnrollment('${enrollment.id}')">
+                <i class="bi bi-check-circle me-1"></i>
+                Одобрить
+              </button>
+              <button class="btn btn-danger" onclick="Admin.rejectEnrollment('${enrollment.id}')">
+                <i class="bi bi-x-circle me-1"></i>
+                Отклонить
+              </button>
             </div>
           </div>
-          <span class="pill ${statusClass}">${Data.formatRequestStatusLabel(req.status)}</span>
         </div>
-
-        <div class="card-meta" style="margin-top:8px;">
-          <strong>Курс:</strong> ${template?.title || 'Неизвестный'} (${template?.code || ''})
-        </div>
-
-        <div class="card-meta">
-          <strong>Поток:</strong> ${instance?.cohort || 'Не указан'} ·
-          Дата заявки: ${Data.formatDateTime(req.createdAt)}
-        </div>
-
-        ${req.comment ? `
-          <div class="card-meta" style="margin-top:4px;">
-            <strong>Комментарий:</strong> «${req.comment}»
-          </div>
-        ` : ''}
-
-        ${req.reviewedBy ? `
-          <div class="card-meta" style="margin-top:8px;padding-top:8px;border-top:1px solid #e5e7eb;">
-            <strong>Рассмотрел:</strong> ${reviewer?.name || 'Неизвестный'} ·
-            ${Data.formatDateTime(req.reviewedAt)}
-            ${req.reviewComment ? `<br><strong>Комментарий:</strong> ${req.reviewComment}` : ''}
-          </div>
-        ` : ''}
-
-        ${req.status === 'pending' ? `
-          <div class="card-header-line" style="margin-top:8px;">
-            <button class="btn btn-primary btn-sm" data-approve="${req.id}">Одобрить</button>
-            <button class="btn btn-danger btn-sm" data-reject="${req.id}">Отклонить</button>
-          </div>
-        ` : ''}
       </div>
     `;
-  }).join("") || '<div class="main-subtitle">Нет заявок</div>';
+  });
 
-  return `
-    <section>
-      ${renderBreadcrumbs([
-        { label: "Администратор", action: "admin-dashboard" },
-        { label: "Заявки на запись" }
-      ])}
-
-      <header class="main-header">
-        <div>
-          <h1 class="main-title">Заявки на запись</h1>
-          <div class="main-subtitle">Всего заявок: ${allRequests.length}</div>
-        </div>
-        <button class="btn btn-ghost" id="btnBackAdmin">К панели</button>
-      </header>
-
-      <section>
-        ${requestsHtml}
-      </section>
-    </section>
+  html += `
+      </div>
+    </div>
   `;
+
+  document.getElementById('app').innerHTML = html;
 }
+
+Admin.approveEnrollment = function(enrollmentId) {
+  const comment = prompt('Комментарий к одобрению (опционально):');
+  if (comment === null) return; // User cancelled
+
+  const enrollment = Data.enrollments.find(e => e.id === enrollmentId);
+  if (!enrollment) return;
+
+  const instance = Data.getCourseInstance(enrollment.courseInstanceId);
+  const template = Data.getCourseTemplate(instance.courseTemplateId);
+
+  // Update enrollment status
+  enrollment.status = 'approved';
+  enrollment.approvedBy = currentUser.id;
+  enrollment.approvedAt = new Date().toISOString();
+  enrollment.approvalComment = comment || 'Заявка одобрена';
+
+  // Allocate resources if sandbox required
+  if (template.requiresSandbox) {
+    const timestamp = Date.now();
+    enrollment.allocatedResources = `Учебный стенд B3
+URL: https://sandbox.b3.example.com/instance-${timestamp}
+Логин: student${timestamp}
+Пароль: Pass_${timestamp}_Auto!
+Действует до: ${new Date(Date.now() + 90*24*60*60*1000).toLocaleDateString('ru-RU')}`;
+  }
+
+  alert('Заявка одобрена! Студент получит уведомление.');
+  renderEnrollmentRequests();
+};
+
+Admin.rejectEnrollment = function(enrollmentId) {
+  const reason = prompt('Причина отклонения:');
+  if (!reason) {
+    alert('Необходимо указать причину отклонения');
+    return;
+  }
+
+  const enrollment = Data.enrollments.find(e => e.id === enrollmentId);
+  if (!enrollment) return;
+
+  enrollment.status = 'rejected';
+  enrollment.approvedBy = currentUser.id;
+  enrollment.approvedAt = new Date().toISOString();
+  enrollment.approvalComment = reason;
+
+  alert('Заявка отклонена. Студент получит уведомление.');
+  renderEnrollmentRequests();
+};
 
 function renderCourseInstancesList() {
   const instances = Data.courseInstances;
@@ -197,7 +243,7 @@ function renderCourseInstancesList() {
         <div class="card-meta" style="margin-top:8px;">
           <strong>Преподаватель:</strong> ${teacher?.name || 'Не назначен'}<br>
           <strong>Период:</strong> ${Data.formatDate(instance.startDate)} – ${Data.formatDate(instance.endDate)}<br>
-          <strong>Записано студентов:</strong> ${enrollmentCount} / ${instance.maxEnrollments}
+          <strong>Записано студентов:</strong> ${enrollmentCount}
         </div>
 
         <div class="card-header-line" style="margin-top:8px;">
@@ -218,7 +264,7 @@ function renderCourseInstancesList() {
       <header class="main-header">
         <div>
           <h1 class="main-title">Экземпляры курсов</h1>
-          <div class="main-subtitle">Управление потоками обучения</div>
+          <div class="main-subtitle">Управление учебными группами</div>
         </div>
         <div style="display:flex;gap:8px;">
           <button class="btn btn-ghost" id="btnBackAdmin">К панели</button>

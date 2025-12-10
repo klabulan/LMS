@@ -94,11 +94,13 @@ LMSData.courseTemplates = [
     description: "Пошаговый курс по основным понятиям платформы B3: объекты данных, интерфейсы, процессы. Подходит для начинающих пользователей без опыта работы с low-code платформами.",
     targetAudience: "Разработчики, аналитики, методисты без опыта работы с B3",
     prerequisites: "Базовые знания реляционных БД и HTML",
-    isPublic: true,
+    status: "published",
+    accessibility: "public",
     certificateThreshold: 70,
     estimatedHours: 40,
     requiresSandbox: true,
     category: "Разработка",
+    certificateTemplateId: "cert-tpl-basic",
     createdBy: "methodist-1",
     createdAt: "2025-11-01T10:00:00Z",
     updatedAt: "2025-12-05T14:30:00Z"
@@ -111,11 +113,13 @@ LMSData.courseTemplates = [
     description: "Работа с интеграциями, RESTQL, подготовка витрин и сложных интерфейсов. Курс для опытных пользователей B3.",
     targetAudience: "Разработчики B3 с опытом работы 3+ месяца",
     prerequisites: "Прохождение курса B3-BASIC-101 или эквивалентный опыт",
-    isPublic: true,
+    status: "published",
+    accessibility: "public",
     certificateThreshold: 80,
     estimatedHours: 60,
     requiresSandbox: true,
     category: "Разработка",
+    certificateTemplateId: "cert-tpl-advanced",
     createdBy: "methodist-1",
     createdAt: "2025-11-15T09:00:00Z",
     updatedAt: "2025-12-01T11:20:00Z"
@@ -142,7 +146,7 @@ LMSData.assignmentTemplates = [
       { type: "pdf", title: "Руководство пользователя", url: "#guide.pdf" }
     ],
     maxScore: 100,
-    dueDays: 1,
+    durationDays: 1,
     isMandatory: true,
     submissionType: ["text"],
     autoGrade: false,
@@ -163,7 +167,7 @@ LMSData.assignmentTemplates = [
       { type: "video", title: "Видео: Создание справочника", url: "#video-objects" }
     ],
     maxScore: 100,
-    dueDays: 3,
+    durationDays: 3,
     isMandatory: true,
     submissionType: ["text", "file", "link"],
     autoGrade: false,
@@ -183,7 +187,7 @@ LMSData.assignmentTemplates = [
       { type: "doc", title: "Основы BPMN в B3", url: "#doc-bpmn" }
     ],
     maxScore: 100,
-    dueDays: 7,
+    durationDays: 7,
     isMandatory: true,
     submissionType: ["text", "file"],
     autoGrade: false,
@@ -201,7 +205,7 @@ LMSData.assignmentTemplates = [
     description: "Создайте форму редактирования справочника с валидацией полей и вычисляемыми значениями.",
     materials: [],
     maxScore: 100,
-    dueDays: 10,
+    durationDays: 10,
     isMandatory: false,
     submissionType: ["file", "link"],
     autoGrade: false,
@@ -222,7 +226,7 @@ LMSData.assignmentTemplates = [
       { type: "doc", title: "RESTQL API Reference", url: "#restql-docs" }
     ],
     maxScore: 100,
-    dueDays: 5,
+    durationDays: 5,
     isMandatory: true,
     submissionType: ["text", "file"],
     autoGrade: false,
@@ -240,7 +244,7 @@ LMSData.assignmentTemplates = [
     description: "Создайте аналитическую панель для отображения прогресса студентов с графиками и фильтрами.",
     materials: [],
     maxScore: 100,
-    dueDays: 10,
+    durationDays: 10,
     isMandatory: true,
     submissionType: ["link", "file"],
     autoGrade: false,
@@ -262,7 +266,6 @@ LMSData.courseInstances = [
     startDate: "2025-12-01",
     endDate: "2026-02-28",
     status: "active",
-    maxEnrollments: 30,
     createdAt: "2025-11-25T10:00:00Z"
   },
   {
@@ -273,42 +276,22 @@ LMSData.courseInstances = [
     startDate: "2026-01-15",
     endDate: "2026-04-15",
     status: "planned",
-    maxEnrollments: 20,
     createdAt: "2025-11-30T14:00:00Z"
-  }
-];
-
-// ============================================================================
-// 5. ENROLLMENT REQUESTS
-// ============================================================================
-
-LMSData.enrollmentRequests = [
-  {
-    id: "er-1",
-    userId: "student-2",
-    courseInstanceId: "ci-basic-2025",
-    status: "pending",
-    comment: "Хочу изучить основы B3 для работы в нашей компании",
-    reviewedBy: null,
-    reviewComment: null,
-    createdAt: "2025-12-08T14:30:00Z",
-    reviewedAt: null
   },
   {
-    id: "er-2",
-    userId: "student-3",
-    courseInstanceId: "ci-advanced-2025",
-    status: "approved",
-    comment: "Прошел базовый курс, готов к продвинутому уровню",
-    reviewedBy: "admin-1",
-    reviewComment: "Подтверждено прохождение базового курса",
-    createdAt: "2025-12-05T09:15:00Z",
-    reviewedAt: "2025-12-06T10:30:00Z"
+    id: "ci-advanced-future",
+    courseTemplateId: "tpl-advanced",
+    teacherId: "teacher-1",
+    cohort: "Группа февраль 2026",
+    startDate: "2026-02-01",
+    endDate: "2026-04-30",
+    status: "planned",
+    createdAt: "2025-12-05T10:00:00Z"
   }
 ];
 
 // ============================================================================
-// 6. ENROLLMENTS (with credentials!)
+// 5. ENROLLMENTS (with allocated resources!)
 // ============================================================================
 
 LMSData.enrollments = [
@@ -319,13 +302,7 @@ LMSData.enrollments = [
     status: "in_progress",
     progress: 66,
     totalScore: 200,
-    credentials: {
-      vm_url: "https://sandbox.b3.example.com/instance-001",
-      username: "student001",
-      password: "TempPass_2025_Abc!",
-      issued_at: "2025-12-01T10:00:00Z",
-      expires_at: "2026-03-01T23:59:59Z"
-    },
+    allocatedResources: "Учебный стенд B3\nURL: https://sandbox.b3.example.com/instance-001\nЛогин: student001\nПароль: TempPass_2025_Abc!\nДействует до: 01.03.2026",
     enrolledAt: "2025-12-01T10:00:00Z",
     completedAt: null,
     lastActivityAt: "2025-12-09T16:45:00Z"
@@ -337,13 +314,7 @@ LMSData.enrollments = [
     status: "not_started",
     progress: 0,
     totalScore: 0,
-    credentials: {
-      vm_url: "https://sandbox.b3.example.com/instance-002",
-      username: "student001_adv",
-      password: "AdvPass_2026_Xyz#",
-      issued_at: "2025-12-05T11:00:00Z",
-      expires_at: "2026-05-01T23:59:59Z"
-    },
+    allocatedResources: "Учебный стенд B3\nURL: https://sandbox.b3.example.com/instance-002\nЛогин: student001_adv\nПароль: AdvPass_2026_Xyz#\nДействует до: 01.05.2026",
     enrolledAt: "2025-12-05T11:00:00Z",
     completedAt: null,
     lastActivityAt: "2025-12-05T11:00:00Z"
@@ -355,16 +326,99 @@ LMSData.enrollments = [
     status: "not_started",
     progress: 0,
     totalScore: 0,
-    credentials: {
-      vm_url: "https://sandbox.b3.example.com/instance-003",
-      username: "student003",
-      password: "Pass_Petr_2026!",
-      issued_at: "2025-12-06T12:00:00Z",
-      expires_at: "2026-05-01T23:59:59Z"
-    },
+    allocatedResources: "Учебный стенд B3\nURL: https://sandbox.b3.example.com/instance-003\nЛогин: student003\nПароль: Pass_Petr_2026!\nДействует до: 01.05.2026",
     enrolledAt: "2025-12-06T12:00:00Z",
     completedAt: null,
     lastActivityAt: "2025-12-06T12:00:00Z"
+  },
+  {
+    id: "enr-pending-1",
+    studentId: "student-1",
+    courseInstanceId: "ci-advanced-future",
+    status: "pending_approval",
+    requestComment: "Хочу повысить квалификацию по платформе B3. Прошел базовый курс с оценкой 95%.",
+    progress: 0,
+    totalScore: 0,
+    allocatedResources: null,
+    enrolledAt: "2025-12-10T09:30:00Z",
+    completedAt: null,
+    lastActivityAt: "2025-12-10T09:30:00Z"
+  },
+  {
+    id: "enr-pending-2",
+    studentId: "student-2",
+    courseInstanceId: "ci-advanced-future",
+    status: "pending_approval",
+    requestComment: "Хочу изучить продвинутые возможности B3 для корпоративного проекта.",
+    progress: 0,
+    totalScore: 0,
+    allocatedResources: null,
+    enrolledAt: "2025-12-09T14:20:00Z",
+    completedAt: null,
+    lastActivityAt: "2025-12-09T14:20:00Z"
+  },
+  {
+    id: "enr-approved-1",
+    studentId: "student-3",
+    courseInstanceId: "ci-advanced-future",
+    status: "approved",
+    requestComment: "Готов к обучению, опыт работы с B3 6 месяцев.",
+    approvedBy: "admin-1",
+    approvedAt: "2025-12-08T11:00:00Z",
+    approvalComment: "Одобрено. Опыт работы подтвержден.",
+    progress: 0,
+    totalScore: 0,
+    allocatedResources: "Учебный стенд B3\nURL: https://sandbox.b3.example.com/instance-future-003\nЛогин: student003_adv\nПароль: FutPass_2026_Xyz#\nДействует до: 01.05.2026",
+    enrolledAt: "2025-12-07T10:00:00Z",
+    completedAt: null,
+    lastActivityAt: "2025-12-08T11:00:00Z"
+  },
+  {
+    id: "enr-rejected-1",
+    studentId: "student-2",
+    courseInstanceId: "ci-advanced-2025",
+    status: "rejected",
+    requestComment: "Хочу пройти продвинутый курс для повышения квалификации.",
+    approvedBy: "admin-1",
+    approvedAt: "2025-12-06T15:30:00Z",
+    approvalComment: "Отклонено. Необходимо сначала завершить базовый курс.",
+    progress: 0,
+    totalScore: 0,
+    allocatedResources: null,
+    enrolledAt: "2025-12-06T09:15:00Z",
+    completedAt: null,
+    lastActivityAt: "2025-12-06T15:30:00Z"
+  },
+  // Additional enrollment for ci-advanced-future to demonstrate rejected status
+  {
+    id: "enr-rejected-future-1",
+    studentId: "student-2",
+    courseInstanceId: "ci-advanced-future",
+    status: "rejected",
+    requestComment: "Планирую пройти курс в феврале 2026.",
+    approvedBy: "teacher-1",
+    approvedAt: "2025-12-09T16:45:00Z",
+    approvalComment: "Отклонено. Недостаточный опыт работы с платформой B3. Рекомендуется сначала пройти базовый курс.",
+    progress: 0,
+    totalScore: 0,
+    allocatedResources: null,
+    enrolledAt: "2025-12-09T10:20:00Z",
+    completedAt: null,
+    lastActivityAt: "2025-12-09T16:45:00Z"
+  },
+  // Draft enrollment (created status) - student saved but not submitted
+  {
+    id: "enr-created-1",
+    studentId: "student-2",
+    courseInstanceId: "ci-basic-2025",
+    status: "created",
+    requestComment: "Хочу начать изучение платформы B3",
+    progress: 0,
+    totalScore: 0,
+    allocatedResources: null,
+    enrolledAt: "2025-12-10T08:00:00Z",
+    completedAt: null,
+    lastActivityAt: "2025-12-10T08:00:00Z"
   }
 ];
 
@@ -839,60 +893,44 @@ LMSData.getAssignmentInstancesForCourse = function(instanceId) {
   return LMSData.assignmentInstances.filter(ai => ai.courseInstanceId === instanceId);
 };
 
-// --- Enrollment Request Helpers ---
+// --- Enrollment Request Helpers (Updated for new workflow) ---
 
-LMSData.getPendingRequests = function() {
-  return LMSData.enrollmentRequests.filter(er => er.status === "pending");
+LMSData.getPendingApprovalEnrollments = function() {
+  return LMSData.enrollments.filter(e => e.status === 'pending_approval');
 };
 
-LMSData.getAllRequests = function() {
-  return LMSData.enrollmentRequests;
-};
+LMSData.approveEnrollment = function(enrollmentId, approvedBy, comment) {
+  const enrollment = LMSData.enrollments.find(e => e.id === enrollmentId);
+  if (!enrollment) return false;
 
-LMSData.approveRequest = function(requestId, adminId, comment) {
-  const request = LMSData.enrollmentRequests.find(er => er.id === requestId);
-  if (!request) return false;
-
-  request.status = "approved";
-  request.reviewedBy = adminId;
-  request.reviewComment = comment || "Заявка одобрена";
-  request.reviewedAt = new Date().toISOString();
-
-  // Create enrollment with credentials
-  const instance = LMSData.getCourseInstance(request.courseInstanceId);
+  const instance = LMSData.getCourseInstance(enrollment.courseInstanceId);
   const template = LMSData.getCourseTemplate(instance.courseTemplateId);
 
-  const newEnrollment = {
-    id: `enr-${Date.now()}`,
-    studentId: request.userId,
-    courseInstanceId: request.courseInstanceId,
-    status: "not_started",
-    progress: 0,
-    totalScore: 0,
-    credentials: template.requiresSandbox ? {
-      vm_url: `https://sandbox.b3.example.com/instance-${Date.now()}`,
-      username: `student${Date.now()}`,
-      password: `Pass_${Date.now()}_Auto!`,
-      issued_at: new Date().toISOString(),
-      expires_at: new Date(new Date().setMonth(new Date().getMonth() + 3)).toISOString()
-    } : null,
-    enrolledAt: new Date().toISOString(),
-    completedAt: null,
-    lastActivityAt: new Date().toISOString()
-  };
+  enrollment.status = 'approved';
+  enrollment.approvedBy = approvedBy;
+  enrollment.approvedAt = new Date().toISOString();
+  enrollment.approvalComment = comment || 'Заявка одобрена';
 
-  LMSData.enrollments.push(newEnrollment);
+  // Allocate resources if sandbox is required
+  if (template.requiresSandbox) {
+    const expireDate = new Date();
+    expireDate.setMonth(expireDate.getMonth() + 3);
+    const expireDateStr = expireDate.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+    enrollment.allocatedResources = `Учебный стенд B3\nURL: https://sandbox.b3.example.com/instance-${Date.now()}\nЛогин: student${Date.now()}\nПароль: Pass_${Date.now()}_Auto!\nДействует до: ${expireDateStr}`;
+  }
+
   return true;
 };
 
-LMSData.rejectRequest = function(requestId, adminId, comment) {
-  const request = LMSData.enrollmentRequests.find(er => er.id === requestId);
-  if (!request) return false;
+LMSData.rejectEnrollment = function(enrollmentId, approvedBy, reason) {
+  const enrollment = LMSData.enrollments.find(e => e.id === enrollmentId);
+  if (!enrollment) return false;
 
-  request.status = "rejected";
-  request.reviewedBy = adminId;
-  request.reviewComment = comment || "Заявка отклонена";
-  request.reviewedAt = new Date().toISOString();
+  enrollment.status = 'rejected';
+  enrollment.approvedBy = approvedBy;
+  enrollment.approvedAt = new Date().toISOString();
+  enrollment.approvalComment = reason;
   return true;
 };
 
@@ -947,19 +985,32 @@ LMSData.formatStatusLabel = function(status) {
     in_progress: "В процессе",
     completed: "Завершён",
     dropped: "Отчислен",
+    created: "Создана",
+    pending_approval: "Ожидает согласования",
+    approved: "Одобрено",
+    rejected: "Отклонено",
     planned: "Запланирован",
     active: "Активен",
-    archived: "Архивирован"
+    archived: "Архивирован",
+    draft: "Черновик",
+    published: "Опубликован",
+    submitted: "На проверке",
+    under_review: "На проверке",
+    accepted: "Принято",
+    needs_revision: "Требует доработки"
   };
   return labels[status] || status;
 };
 
 LMSData.formatAssignmentStatusLabel = function(status) {
   const labels = {
+    not_started: "Не начато",
     draft: "Черновик",
+    in_progress: "В работе",
     submitted: "Отправлено",
     under_review: "На проверке",
     accepted: "Принято",
+    completed: "Завершено",
     needs_revision: "На доработку"
   };
   return labels[status] || status;
@@ -1153,7 +1204,6 @@ console.log(`  - Course Templates: ${LMSData.courseTemplates.length}`);
 console.log(`  - Assignment Templates: ${LMSData.assignmentTemplates.length}`);
 console.log(`  - Course Instances: ${LMSData.courseInstances.length}`);
 console.log(`  - Enrollments: ${LMSData.enrollments.length}`);
-console.log(`  - Enrollment Requests: ${LMSData.enrollmentRequests.length}`);
 console.log(`  - Assignment Instances: ${LMSData.assignmentInstances.length}`);
 console.log(`  - Dialogs: ${LMSData.dialogs.length}`);
 console.log(`  - Messages: ${LMSData.messages.length}`);

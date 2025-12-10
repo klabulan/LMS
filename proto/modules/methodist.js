@@ -24,7 +24,7 @@ function renderMethodistDashboard() {
             <div class="card-title">${template.title}</div>
             <div class="card-meta">${template.code} · ${Data.formatLevel(template.level)}</div>
           </div>
-          <span class="badge badge-status">${template.isPublic ? 'Опубликован' : 'Черновик'}</span>
+          <span class="badge badge-status">${Data.formatStatusLabel(template.status)}</span>
         </div>
         <div class="card-meta">${template.description}</div>
         <div class="card-meta" style="margin-top:8px;">
@@ -85,21 +85,20 @@ function renderTemplateEditor() {
 
   // Status management buttons based on current state
   const getStatusActions = () => {
-    if (template.isPublic) {
+    if (template.status === 'published') {
       return `
-        <button class="btn btn-ghost btn-sm" onclick="changeTemplateStatus('draft')">
-          Скрыть из каталога
+        <button class="btn btn-outline-warning btn-sm" onclick="Methodist.changeTemplateStatus('${template.id}', 'draft')">
+          <i class="bi bi-eye-slash me-1"></i>Снять с публикации
         </button>
-        <button class="btn btn-sm" onclick="changeTemplateStatus('editing')">
-          Внести изменения
+      `;
+    } else if (template.status === 'draft') {
+      return `
+        <button class="btn btn-success btn-sm" onclick="Methodist.changeTemplateStatus('${template.id}', 'published')">
+          <i class="bi bi-send me-1"></i>Опубликовать
         </button>
       `;
     } else {
-      return `
-        <button class="btn btn-primary btn-sm" onclick="changeTemplateStatus('publish')">
-          Опубликовать
-        </button>
-      `;
+      return '';
     }
   };
 
@@ -137,8 +136,8 @@ function renderTemplateEditor() {
       <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--color-border);">
         <div style="font-weight:500; margin-bottom:12px;">Управление статусом</div>
         <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-          <span class="pill ${template.isPublic ? 'status-accepted' : 'status-draft'}">
-            ${template.isPublic ? 'Опубликован' : 'Черновик'}
+          <span class="pill ${template.status === 'published' ? 'status-accepted' : 'status-draft'}">
+            ${Data.formatStatusLabel(template.status)}
           </span>
           ${getStatusActions()}
         </div>
@@ -215,9 +214,9 @@ function renderTemplateEditor() {
               <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:12px;">
                 <div>
                   <label class="field-label" style="font-size:11px;">Длительность (дней)</label>
-                  <input type="number" class="input" value="${a.dueDays || 7}" min="1"
+                  <input type="number" class="input" value="${a.durationDays || 7}" min="1"
                          style="width:100%; padding:6px 8px; font-size:12px;"
-                         onchange="updateAssignmentSchedule('${a.id}', 'dueDays', this.value)">
+                         onchange="updateAssignmentSchedule('${a.id}', 'durationDays', this.value)">
                 </div>
                 <div>
                   <label class="field-label" style="font-size:11px;">Условие старта</label>
@@ -405,21 +404,41 @@ function switchTemplateTab(tab) {
   renderApp();
 }
 
+// Expose Methodist functions to global scope
+const Methodist = {
+  changeTemplateStatus: function(templateId, newStatus) {
+    const template = Data.getCourseTemplate(templateId);
+    if (!template) return;
+
+    template.status = newStatus;
+
+    if (newStatus === 'published') {
+      alert('Курс опубликован в каталоге! (демо)');
+    } else if (newStatus === 'draft') {
+      alert('Курс снят с публикации (демо)');
+    }
+
+    renderApp();
+  },
+
+  renderDashboard: function() {
+    renderApp();
+  }
+};
+
+// Legacy support
 function changeTemplateStatus(action) {
   const template = Data.getCourseTemplate(state.currentCourseId);
   if (!template) return;
 
   if (action === 'publish') {
-    template.isPublic = true;
-    alert('Курс опубликован в каталоге! (демо)');
+    Methodist.changeTemplateStatus(template.id, 'published');
   } else if (action === 'draft') {
-    template.isPublic = false;
-    alert('Курс скрыт из каталога (демо)');
+    Methodist.changeTemplateStatus(template.id, 'draft');
   } else if (action === 'editing') {
     alert('Курс переведён в режим редактирования (демо)');
+    renderApp();
   }
-
-  renderApp();
 }
 
 // Schedule helper functions
@@ -513,15 +532,9 @@ function showAddAssignmentModal(templateId) {
         <textarea id="new-assignment-desc" class="textarea" placeholder="Опишите задание" style="min-height:80px;"></textarea>
       </div>
 
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-        <div>
-          <label class="field-label">Макс. баллов</label>
-          <input type="number" id="new-assignment-score" class="input" value="10" min="1" style="width:100%;">
-        </div>
-        <div>
-          <label class="field-label">Срок (дней)</label>
-          <input type="number" id="new-assignment-days" class="input" value="7" min="1" style="width:100%;">
-        </div>
+      <div>
+        <label class="field-label">Макс. баллов</label>
+        <input type="number" id="new-assignment-score" class="input" value="10" min="1" style="width:100%;">
       </div>
 
       <div>
@@ -609,15 +622,9 @@ function showEditAssignmentModal(assignmentId) {
         <textarea id="edit-assignment-desc" class="textarea" style="min-height:80px;">${assignment.description}</textarea>
       </div>
 
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-        <div>
-          <label class="field-label">Макс. баллов</label>
-          <input type="number" id="edit-assignment-score" class="input" value="${assignment.maxScore}" min="1" style="width:100%;">
-        </div>
-        <div>
-          <label class="field-label">Срок (дней)</label>
-          <input type="number" id="edit-assignment-days" class="input" value="${assignment.dueDays}" min="1" style="width:100%;">
-        </div>
+      <div>
+        <label class="field-label">Макс. баллов</label>
+        <input type="number" id="edit-assignment-score" class="input" value="${assignment.maxScore}" min="1" style="width:100%;">
       </div>
 
       <div>

@@ -10,6 +10,58 @@ let selectedAssignmentId = null;
 // ЛИЧНЫЙ КАБИНЕТ (Dashboard)
 // ============================================================================
 
+function renderPlannedCoursesSection(user) {
+  const plannedCourses = Data.courseInstances.filter(
+    ci => ci.teacherId === user.id && ci.status === 'planned'
+  );
+
+  if (plannedCourses.length === 0) {
+    return '';
+  }
+
+  let html = `
+    <h2 style="font-size:14px; font-weight:600; margin-bottom:12px;">Запланированные курсы</h2>
+    <div class="cards-grid" style="grid-template-columns: 1fr; margin-bottom:20px;">
+  `;
+
+  plannedCourses.forEach(instance => {
+    const template = Data.getCourseTemplate(instance.courseTemplateId);
+    const allEnrollments = Data.enrollments.filter(e => e.courseInstanceId === instance.id);
+    const approvedCount = allEnrollments.filter(e => e.status === 'approved').length;
+    const pendingCount = allEnrollments.filter(e => e.status === 'pending_approval').length;
+    const rejectedCount = allEnrollments.filter(e => e.status === 'rejected').length;
+
+    html += `
+      <div class="card" style="padding:12px;">
+        <div class="card-header-line">
+          <div>
+            <div class="card-title">${template.title}</div>
+            <div class="card-meta">${instance.cohort}</div>
+          </div>
+          <span class="badge" style="background:#dbeafe; color:#1e40af;">${Data.formatStatusLabel('planned')}</span>
+        </div>
+        <div style="margin-top:8px; font-size:12px;">
+          <div>📅 Старт: ${Data.formatDate(instance.startDate)}</div>
+          <div>👥 Согласовано студентов: ${approvedCount}</div>
+          ${pendingCount > 0 ? `<div style="color:#f97316;">⏳ Заявок на согласовании: ${pendingCount}</div>` : ''}
+          ${rejectedCount > 0 ? `<div style="color:#dc2626;">✗ Отклонено заявок: ${rejectedCount}</div>` : ''}
+        </div>
+        <div style="margin-top:8px;">
+          <button class="btn btn-primary btn-sm" onclick="navigateTo('teacherCourseDetail', '${instance.id}')">
+            Список студентов
+          </button>
+        </div>
+      </div>
+    `;
+  });
+
+  html += `
+    </div>
+  `;
+
+  return html;
+}
+
 function renderTeacherDashboard() {
   const user = getCurrentUser();
   const myCourses = Data.courseInstances.filter(ci => ci.teacherId === user.id);
@@ -72,10 +124,13 @@ function renderTeacherDashboard() {
           </div>
         </div>
 
+        <!-- Запланированные курсы -->
+        ${renderPlannedCoursesSection(user)}
+
         <!-- Мои курсы -->
         <h2 style="font-size:14px; font-weight:600; margin-bottom:12px;">Мои курсы</h2>
         <div class="cards-grid" style="grid-template-columns: 1fr;">
-          ${myCourses.slice(0, 3).map(instance => {
+          ${myCourses.filter(c => c.status === 'active').slice(0, 3).map(instance => {
             const template = Data.getCourseTemplate(instance.courseTemplateId);
             const enrollments = Data.getEnrollmentsByCourse(instance.id);
             const coursePending = Data.assignmentInstances.filter(ai =>
@@ -322,15 +377,33 @@ function renderStudentsTable(courseInstanceId, enrollments, assignments) {
       ai.status === 'submitted'
     ).length;
 
-    // Risk level based on progress (Brightspace pattern)
-    let riskLevel = 'green';
-    let riskLabel = 'В норме';
-    if (enrollment.progress < 50) {
-      riskLevel = 'red';
-      riskLabel = 'Отстаёт';
-    } else if (enrollment.progress < 80) {
-      riskLevel = 'yellow';
-      riskLabel = 'Внимание';
+    // Get enrollment status label and color
+    let statusLabel = '';
+    let statusBg = '#f3f4f6';
+    let statusColor = '#6b7280';
+
+    if (enrollment.status === 'pending_approval') {
+      statusLabel = 'Ожидает согласования';
+      statusBg = '#fef3c7';
+      statusColor = '#92400e';
+    } else if (enrollment.status === 'approved') {
+      statusLabel = 'Согласовано';
+      statusBg = '#dcfce7';
+      statusColor = '#166534';
+    } else if (enrollment.status === 'in_progress') {
+      statusLabel = 'Активен';
+      statusBg = '#dbeafe';
+      statusColor = '#1e40af';
+    } else if (enrollment.status === 'completed') {
+      statusLabel = 'Завершил';
+      statusBg = '#dcfce7';
+      statusColor = '#166534';
+    } else if (enrollment.status === 'rejected') {
+      statusLabel = 'Отклонено';
+      statusBg = '#fee2e2';
+      statusColor = '#dc2626';
+    } else {
+      statusLabel = Data.formatStatusLabel(enrollment.status);
     }
 
     return {
@@ -338,8 +411,9 @@ function renderStudentsTable(courseInstanceId, enrollments, assignments) {
       student,
       completedCount,
       submittedCount,
-      riskLevel,
-      riskLabel
+      statusLabel,
+      statusBg,
+      statusColor
     };
   });
 
@@ -383,13 +457,13 @@ function renderStudentsTable(courseInstanceId, enrollments, assignments) {
                 `}
               </td>
               <td style="text-align:center;">
-                <span class="tag" style="background:${data.riskLevel === 'green' ? '#dcfce7' : data.riskLevel === 'yellow' ? '#fef3c7' : '#fee2e2'}; color:${data.riskLevel === 'green' ? '#166534' : data.riskLevel === 'yellow' ? '#92400e' : '#991b1b'}; font-size:10px;">
-                  ${data.riskLabel}
+                <span class="tag" style="background:${data.statusBg}; color:${data.statusColor}; font-size:10px;">
+                  ${data.statusLabel}
                 </span>
               </td>
               <td style="text-align:center;">
                 <button class="btn btn-sm btn-ghost" style="font-size:11px; padding:4px 8px;"
-                        onclick="openStudentDetailModal('${courseInstanceId}', '${data.enrollment.studentId}')">
+                        onclick="openStudentModalBasedOnCourseStatus('${courseInstanceId}', '${data.enrollment.studentId}')">
                   Подробнее
                 </button>
               </td>
@@ -852,6 +926,177 @@ function renderGradebook(courseInstanceId) {
 // ============================================================================
 // MODAL DIALOGS FOR STUDENT/ASSIGNMENT DETAILS
 // ============================================================================
+
+/**
+ * Open appropriate modal based on course status
+ * - planned courses: show approval modal
+ * - active courses: show student details modal
+ */
+function openStudentModalBasedOnCourseStatus(courseInstanceId, studentId) {
+  const instance = Data.getCourseInstance(courseInstanceId);
+
+  if (instance.status === 'planned') {
+    openStudentApprovalModal(courseInstanceId, studentId);
+  } else {
+    openStudentDetailModal(courseInstanceId, studentId);
+  }
+}
+
+/**
+ * Open modal for student approval (for planned courses)
+ */
+function openStudentApprovalModal(courseInstanceId, studentId) {
+  const instance = Data.getCourseInstance(courseInstanceId);
+  const template = Data.getCourseTemplate(instance.courseTemplateId);
+  const enrollment = Data.enrollments.find(e => e.courseInstanceId === courseInstanceId && e.studentId === studentId);
+  const student = Data.getUserById(studentId);
+
+  if (!enrollment || !student) {
+    alert('Студент не найден');
+    return;
+  }
+
+  let statusBadge = '';
+  let statusBg = '#f3f4f6';
+  let statusColor = '#6b7280';
+
+  if (enrollment.status === 'pending_approval') {
+    statusBadge = 'Ожидает согласования';
+    statusBg = '#fef3c7';
+    statusColor = '#92400e';
+  } else if (enrollment.status === 'approved') {
+    statusBadge = 'Согласовано';
+    statusBg = '#dcfce7';
+    statusColor = '#166534';
+  } else if (enrollment.status === 'rejected') {
+    statusBadge = 'Отклонено';
+    statusBg = '#fee2e2';
+    statusColor = '#dc2626';
+  }
+
+  const content = `
+    <div style="margin-bottom:16px;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+        <div>
+          <div style="font-size:11px; color:#6b7280; text-transform:uppercase; letter-spacing:0.05em;">Студент</div>
+          <div style="font-weight:600; font-size:16px;">${student.name}</div>
+          <div style="font-size:12px; color:#6b7280;">${student.email || ''}</div>
+          <div style="font-size:12px; color:#6b7280; margin-top:4px;">${student.organization || ''}</div>
+        </div>
+        <div style="text-align:right;">
+          <span class="badge" style="background:${statusBg}; color:${statusColor}; font-size:11px;">
+            ${statusBadge}
+          </span>
+        </div>
+      </div>
+
+      <!-- Course info -->
+      <div style="margin-bottom:12px; padding:10px; background:#f9fafb; border-radius:6px;">
+        <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">Курс</div>
+        <div style="font-weight:500; font-size:13px;">${template.title}</div>
+        <div style="font-size:11px; color:#6b7280;">${instance.cohort}</div>
+        <div style="font-size:11px; color:#6b7280; margin-top:4px;">
+          📅 ${Data.formatDate(instance.startDate)} – ${Data.formatDate(instance.endDate)}
+        </div>
+      </div>
+
+      ${enrollment.requestComment ? `
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">Комментарий студента</div>
+          <div style="padding:10px; background:#fffbeb; border-radius:6px; font-size:12px; color:#374151;">
+            ${enrollment.requestComment}
+          </div>
+        </div>
+      ` : ''}
+
+      ${enrollment.status === 'approved' && enrollment.approvalComment ? `
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">Решение</div>
+          <div style="padding:10px; background:#dcfce7; border-radius:6px; font-size:12px; color:#166534;">
+            <strong>Одобрено</strong><br>
+            ${enrollment.approvalComment}
+          </div>
+          <div style="font-size:10px; color:#6b7280; margin-top:4px;">
+            ${Data.formatDateTime(enrollment.approvedAt)}
+          </div>
+        </div>
+      ` : ''}
+
+      ${enrollment.status === 'rejected' && enrollment.approvalComment ? `
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">Решение</div>
+          <div style="padding:10px; background:#fee2e2; border-radius:6px; font-size:12px; color:#dc2626;">
+            <strong>Отклонено</strong><br>
+            ${enrollment.approvalComment}
+          </div>
+          <div style="font-size:10px; color:#6b7280; margin-top:4px;">
+            ${Data.formatDateTime(enrollment.approvedAt)}
+          </div>
+        </div>
+      ` : ''}
+
+      ${enrollment.status === 'pending_approval' ? `
+        <div style="margin-top:16px;">
+          <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">Комментарий к решению (опционально)</div>
+          <textarea id="approval-comment" class="textarea" placeholder="Добавьте комментарий..." style="min-height:60px;"></textarea>
+        </div>
+      ` : ''}
+    </div>
+  `;
+
+  const actions = [];
+
+  if (enrollment.status === 'pending_approval') {
+    actions.push(
+      { label: 'Отклонить', className: 'btn-ghost', onClick: `handleStudentRejection('${enrollment.id}')` },
+      { label: 'Одобрить', className: 'btn-primary', onClick: `handleStudentApproval('${enrollment.id}')` }
+    );
+  } else {
+    actions.push(
+      { label: 'Закрыть', className: 'btn-ghost', onClick: 'closeModal()' }
+    );
+  }
+
+  openModal(`Заявка: ${student.name}`, content, actions);
+}
+
+/**
+ * Handle student approval
+ */
+function handleStudentApproval(enrollmentId) {
+  const comment = document.getElementById('approval-comment')?.value || 'Заявка одобрена';
+  const user = getCurrentUser();
+
+  if (Data.approveEnrollment(enrollmentId, user.id, comment)) {
+    alert('Заявка одобрена! (демо)');
+    closeModal();
+    renderApp();
+  } else {
+    alert('Ошибка при одобрении заявки');
+  }
+}
+
+/**
+ * Handle student rejection
+ */
+function handleStudentRejection(enrollmentId) {
+  const comment = document.getElementById('approval-comment')?.value;
+
+  if (!comment || comment.trim() === '') {
+    alert('Пожалуйста, укажите причину отклонения');
+    return;
+  }
+
+  const user = getCurrentUser();
+
+  if (Data.rejectEnrollment(enrollmentId, user.id, comment)) {
+    alert('Заявка отклонена (демо)');
+    closeModal();
+    renderApp();
+  } else {
+    alert('Ошибка при отклонении заявки');
+  }
+}
 
 /**
  * Open modal with student details (all assignments for this student)
@@ -1320,4 +1565,192 @@ function renderClassProgressTab(courseInstanceId) {
       </div>
     </div>
   `;
+}
+
+// ============================================================================
+// ПРОСМОТР СТУДЕНТОВ ЗАПЛАНИРОВАННОГО КУРСА
+// ============================================================================
+
+function viewPlannedCourseStudents(instanceId) {
+  const instance = Data.getCourseInstance(instanceId);
+  const template = Data.getCourseTemplate(instance.courseTemplateId);
+  const enrollments = Data.enrollments.filter(e => e.courseInstanceId === instanceId);
+
+  const approvedEnrollments = enrollments.filter(e => e.status === 'approved');
+  const pendingEnrollments = enrollments.filter(e => e.status === 'pending_approval');
+  const rejectedEnrollments = enrollments.filter(e => e.status === 'rejected');
+
+  let html = `
+    ${renderBreadcrumbs([
+      { label: "Личный кабинет", onClick: "navigateTo('teacherDashboard')" },
+      { label: template.title }
+    ])}
+
+    <div class="main-header">
+      <div>
+        <h1 class="main-title">${template.title}</h1>
+        <div class="main-subtitle">${instance.cohort}</div>
+      </div>
+    </div>
+
+    <div style="margin-top:16px;">
+      <!-- Информация о курсе -->
+      <div class="card" style="margin-bottom:16px; padding:12px;">
+        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; font-size:12px;">
+          <div>
+            <div style="color:#6b7280;">Дата старта</div>
+            <div style="font-weight:500;">${Data.formatDate(instance.startDate)}</div>
+          </div>
+          <div>
+            <div style="color:#6b7280;">Дата окончания</div>
+            <div style="font-weight:500;">${Data.formatDate(instance.endDate)}</div>
+          </div>
+          <div>
+            <div style="color:#6b7280;">Статус</div>
+            <div><span class="badge" style="background:#dbeafe; color:#1e40af;">${Data.formatStatusLabel(instance.status)}</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Согласованные студенты -->
+      <div class="card" style="margin-bottom:16px;">
+        <div style="padding:12px; background:#dcfce7; border-bottom:1px solid var(--color-border); border-radius:8px 8px 0 0;">
+          <h2 style="font-size:14px; font-weight:600; margin:0; color:#166534;">
+            ✓ Согласованные студенты (${approvedEnrollments.length})
+          </h2>
+        </div>
+        <div style="padding:12px;">
+  `;
+
+  if (approvedEnrollments.length === 0) {
+    html += '<div style="text-align:center; padding:20px; color:#9ca3af; font-size:12px;">Нет согласованных студентов</div>';
+  } else {
+    html += '<div style="display:flex; flex-direction:column; gap:8px;">';
+    approvedEnrollments.forEach(enrollment => {
+      const student = Data.getUserById(enrollment.studentId);
+      html += `
+        <div style="padding:10px; background:#f9fafb; border-radius:6px; border:1px solid var(--color-border);">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="font-weight:500; font-size:13px;">${student?.name || 'Неизвестный'}</div>
+              <div style="font-size:11px; color:#6b7280;">${student?.organization || ''}</div>
+            </div>
+            <div style="text-align:right;">
+              <span class="badge" style="background:#dcfce7; color:#166534; font-size:10px;">Согласован</span>
+              <div style="font-size:10px; color:#6b7280; margin-top:2px;">${Data.formatDate(enrollment.approvedAt)}</div>
+            </div>
+          </div>
+          ${enrollment.approvalComment ? `
+            <div style="font-size:11px; margin-top:6px; color:#374151;">
+              <strong>Комментарий:</strong> ${enrollment.approvalComment}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    });
+    html += '</div>';
+  }
+
+  html += `
+        </div>
+      </div>
+
+      <!-- Ожидают согласования -->
+      <div class="card" style="margin-bottom:16px;">
+        <div style="padding:12px; background:#fef3c7; border-bottom:1px solid var(--color-border); border-radius:8px 8px 0 0;">
+          <h2 style="font-size:14px; font-weight:600; margin:0; color:#92400e;">
+            ⏳ Ожидают согласования (${pendingEnrollments.length})
+          </h2>
+        </div>
+        <div style="padding:12px;">
+  `;
+
+  if (pendingEnrollments.length === 0) {
+    html += '<div style="text-align:center; padding:20px; color:#9ca3af; font-size:12px;">Нет заявок на согласовании</div>';
+  } else {
+    html += '<div style="display:flex; flex-direction:column; gap:8px;">';
+    pendingEnrollments.forEach(enrollment => {
+      const student = Data.getUserById(enrollment.studentId);
+      html += `
+        <div style="padding:10px; background:#f9fafb; border-radius:6px; border:1px solid var(--color-border);">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="font-weight:500; font-size:13px;">${student?.name || 'Неизвестный'}</div>
+              <div style="font-size:11px; color:#6b7280;">${student?.organization || ''}</div>
+            </div>
+            <div style="text-align:right;">
+              <span class="badge" style="background:#fef3c7; color:#92400e; font-size:10px;">Ожидает</span>
+              <div style="font-size:10px; color:#6b7280; margin-top:2px;">Подана: ${Data.formatDate(enrollment.enrolledAt)}</div>
+            </div>
+          </div>
+          ${enrollment.requestComment ? `
+            <div style="margin-top:8px; padding:8px; background:#fffbeb; border-radius:4px; font-size:11px; color:#374151;">
+              <strong>Комментарий студента:</strong><br>${enrollment.requestComment}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    });
+    html += '</div>';
+  }
+
+  html += `
+        </div>
+      </div>
+
+      <!-- Отклонённые заявки -->
+      <div class="card" style="margin-bottom:16px;">
+        <div style="padding:12px; background:#fee2e2; border-bottom:1px solid var(--color-border); border-radius:8px 8px 0 0;">
+          <h2 style="font-size:14px; font-weight:600; margin:0; color:#dc2626;">
+            ✗ Отклонённые заявки (${rejectedEnrollments.length})
+          </h2>
+        </div>
+        <div style="padding:12px;">
+  `;
+
+  if (rejectedEnrollments.length === 0) {
+    html += '<div style="text-align:center; padding:20px; color:#9ca3af; font-size:12px;">Нет отклонённых заявок</div>';
+  } else {
+    html += '<div style="display:flex; flex-direction:column; gap:8px;">';
+    rejectedEnrollments.forEach(enrollment => {
+      const student = Data.getUserById(enrollment.studentId);
+      html += `
+        <div style="padding:10px; background:#f9fafb; border-radius:6px; border:1px solid var(--color-border);">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="font-weight:500; font-size:13px;">${student?.name || 'Неизвестный'}</div>
+              <div style="font-size:11px; color:#6b7280;">${student?.organization || ''}</div>
+            </div>
+            <div style="text-align:right;">
+              <span class="badge" style="background:#fee2e2; color:#dc2626; font-size:10px;">Отклонено</span>
+              <div style="font-size:10px; color:#6b7280; margin-top:2px;">Отклонена: ${Data.formatDate(enrollment.approvedAt)}</div>
+            </div>
+          </div>
+          ${enrollment.requestComment ? `
+            <div style="margin-top:8px; padding:8px; background:#fffbeb; border-radius:4px; font-size:11px; color:#374151;">
+              <strong>Комментарий студента:</strong><br>${enrollment.requestComment}
+            </div>
+          ` : ''}
+          ${enrollment.approvalComment ? `
+            <div style="margin-top:8px; padding:8px; background:#fee2e2; border-radius:4px; font-size:11px; color:#991b1b;">
+              <strong>Причина отклонения:</strong><br>${enrollment.approvalComment}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    });
+    html += '</div>';
+  }
+
+  html += `
+        </div>
+      </div>
+
+      <button class="btn btn-ghost" onclick="navigateTo('teacherDashboard')">
+        ← Назад к дашборду
+      </button>
+    </div>
+  `;
+
+  return html;
 }
