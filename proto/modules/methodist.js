@@ -1,0 +1,672 @@
+// B3 Learning Portal - Methodist Screens Module
+// Экраны для методистов
+
+// State for template editor
+let templateEditorTab = 'info'; // 'info', 'assignments', 'schedule', 'launch'
+
+function renderMethodistDashboard() {
+  const user = getCurrentUser();
+  const myTemplates = Data.courseTemplates.filter(t => t.createdBy === user.id);
+
+  const totalTemplates = myTemplates.length;
+  const totalInstances = Data.courseInstances.filter(ci =>
+    myTemplates.some(t => t.id === ci.courseTemplateId)
+  ).length;
+
+  const templateCardsHtml = myTemplates.map(template => {
+    const instanceCount = Data.courseInstances.filter(ci => ci.courseTemplateId === template.id).length;
+    const assignmentCount = Data.getAssignmentTemplatesForCourse(template.id).length;
+
+    return `
+      <article class="card">
+        <div class="card-header-line">
+          <div>
+            <div class="card-title">${template.title}</div>
+            <div class="card-meta">${template.code} · ${Data.formatLevel(template.level)}</div>
+          </div>
+          <span class="badge badge-status">${template.isPublic ? 'Опубликован' : 'Черновик'}</span>
+        </div>
+        <div class="card-meta">${template.description}</div>
+        <div class="card-meta" style="margin-top:8px;">
+          <strong>${assignmentCount}</strong> заданий ·
+          <strong>${instanceCount}</strong> экземпляров ·
+          Порог сертификата: <strong>${template.certificateThreshold}%</strong>
+        </div>
+        <div class="card-header-line" style="margin-top:8px;">
+          <button class="btn" data-edit-template="${template.id}">Редактировать</button>
+          <button class="btn btn-ghost" data-preview-template="${template.id}">Предпросмотр</button>
+        </div>
+      </article>
+    `;
+  }).join("");
+
+  return `
+    <section>
+      <header class="main-header">
+        <div>
+          <h1 class="main-title">Рабочее место методиста</h1>
+          <div class="main-subtitle">Проектирование курсов и заданий</div>
+        </div>
+        <button class="btn btn-primary" id="btnCreateTemplate">Создать шаблон курса</button>
+      </header>
+
+      <section style="margin-bottom:20px;">
+        <h2 style="font-size:14px;margin:6px 0 8px;">Статистика</h2>
+        <div class="cards-grid">
+          <div class="card">
+            <div class="card-title">Мои шаблоны курсов</div>
+            <div style="font-size:32px;font-weight:600;">${totalTemplates}</div>
+          </div>
+          <div class="card">
+            <div class="card-title">Создано экземпляров</div>
+            <div style="font-size:32px;font-weight:600;">${totalInstances}</div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2 style="font-size:14px;margin:6px 0 8px;">Мои шаблоны курсов (${totalTemplates})</h2>
+        <div class="cards-grid">
+          ${templateCardsHtml || '<div class="main-subtitle">Пока нет шаблонов. Создайте первый шаблон курса.</div>'}
+        </div>
+      </section>
+    </section>
+  `;
+}
+
+function renderTemplateEditor() {
+  const template = Data.getCourseTemplate(state.currentCourseId);
+  if (!template) {
+    navigateTo("methodistDashboard");
+    return "";
+  }
+
+  const assignments = Data.getAssignmentTemplatesForCourse(template.id);
+
+  // Status management buttons based on current state
+  const getStatusActions = () => {
+    if (template.isPublic) {
+      return `
+        <button class="btn btn-ghost btn-sm" onclick="changeTemplateStatus('draft')">
+          Скрыть из каталога
+        </button>
+        <button class="btn btn-sm" onclick="changeTemplateStatus('editing')">
+          Внести изменения
+        </button>
+      `;
+    } else {
+      return `
+        <button class="btn btn-primary btn-sm" onclick="changeTemplateStatus('publish')">
+          Опубликовать
+        </button>
+      `;
+    }
+  };
+
+  // Info tab content
+  const infoContent = `
+    <div class="card">
+      <div class="field-label">Название</div>
+      <input type="text" class="textarea" id="editTitle" value="${template.title}" style="min-height:auto;padding:8px;">
+
+      <div class="field-label">Код</div>
+      <input type="text" class="textarea" id="editCode" value="${template.code}" style="min-height:auto;padding:8px;">
+
+      <div class="field-label">Уровень</div>
+      <select class="textarea" id="editLevel" style="min-height:auto;padding:8px;">
+        <option value="basic" ${template.level === 'basic' ? 'selected' : ''}>Базовый</option>
+        <option value="intermediate" ${template.level === 'intermediate' ? 'selected' : ''}>Средний</option>
+        <option value="advanced" ${template.level === 'advanced' ? 'selected' : ''}>Продвинутый</option>
+      </select>
+
+      <div class="field-label">Категория</div>
+      <input type="text" class="textarea" id="editCategory" value="${template.category || ''}" style="min-height:auto;padding:8px;">
+
+      <div class="field-label">Описание</div>
+      <textarea class="textarea" id="editDescription">${template.description}</textarea>
+
+      <div class="field-label">Предварительные требования</div>
+      <textarea class="textarea" id="editPrerequisites">${template.prerequisites || ''}</textarea>
+
+      <div class="field-label">Порог для сертификата (%)</div>
+      <input type="number" class="textarea" id="editThreshold" value="${template.certificateThreshold}" min="0" max="100" style="min-height:auto;padding:8px;">
+
+      <div class="field-label">Ориентировочная длительность (часов)</div>
+      <input type="number" class="textarea" id="editHours" value="${template.estimatedHours || 0}" min="0" style="min-height:auto;padding:8px;">
+
+      <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--color-border);">
+        <div style="font-weight:500; margin-bottom:12px;">Управление статусом</div>
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+          <span class="pill ${template.isPublic ? 'status-accepted' : 'status-draft'}">
+            ${template.isPublic ? 'Опубликован' : 'Черновик'}
+          </span>
+          ${getStatusActions()}
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Assignments tab content
+  const assignmentsContent = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div style="font-size:13px; color:#6b7280;">
+        Всего заданий: ${assignments.length}
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="showAddAssignmentModal('${template.id}')">
+        + Добавить задание
+      </button>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      ${assignments.length > 0 ? assignments.map(a => `
+        <div class="card" style="padding:12px; cursor:pointer; transition:all 0.15s;"
+             onclick="showEditAssignmentModal('${a.id}')"
+             onmouseover="this.style.borderColor='var(--color-primary)'"
+             onmouseout="this.style.borderColor='var(--color-border)'">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div style="flex:1;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="width:24px; height:24px; background:#e5e7eb; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; color:#374151;">
+                  ${a.order}
+                </span>
+                <div class="card-title">${a.title}</div>
+                ${a.deliveryMode === 'in_person' ? '<span class="tag" style="background:#fef3c7; color:#92400e; font-size:10px;">Очное</span>' : ''}
+              </div>
+              <div class="card-meta" style="margin-top:4px; margin-left:32px;">
+                ${Data.formatAssignmentType(a.type)} ·
+                ${a.deliveryMode === 'in_person' ? 'Очное' : 'Самостоятельное'} ·
+                ${a.isMandatory ? 'Обязательное' : 'Опциональное'} ·
+                ${a.maxScore} баллов
+              </div>
+              <div style="font-size:12px; color:#6b7280; margin-top:4px; margin-left:32px; line-height:1.4;">
+                ${a.description.substring(0, 100)}${a.description.length > 100 ? '...' : ''}
+              </div>
+            </div>
+            <span style="color:#9ca3af; font-size:18px;">→</span>
+          </div>
+        </div>
+      `).join('') : `
+        <div style="text-align:center; padding:40px; color:#9ca3af;">
+          <div style="font-size:32px; margin-bottom:8px;">📝</div>
+          <div>Нет заданий. Добавьте первое задание курса.</div>
+        </div>
+      `}
+    </div>
+  `;
+
+  // Assignment schedule tab content
+  const scheduleContent = `
+    <div class="card">
+      <div style="font-weight:500; margin-bottom:16px;">График прохождения заданий</div>
+      <p style="font-size:13px; color:#6b7280; margin-bottom:16px;">
+        Настройте условия доступа к заданиям и их длительность. Эти правила будут применяться
+        к каждому экземпляру курса.
+      </p>
+
+      ${assignments.length > 0 ? `
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          ${assignments.map((a, index) => `
+            <div style="padding:12px; background:#f9fafb; border-radius:8px; border:1px solid var(--color-border);">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+                <div style="font-weight:500; font-size:13px;">${a.order}. ${a.title}</div>
+                <span class="tag" style="font-size:10px;">${a.deliveryMode === 'in_person' ? 'Очное' : 'Самостоятельное'}</span>
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:12px;">
+                <div>
+                  <label class="field-label" style="font-size:11px;">Длительность (дней)</label>
+                  <input type="number" class="input" value="${a.dueDays || 7}" min="1"
+                         style="width:100%; padding:6px 8px; font-size:12px;"
+                         onchange="updateAssignmentSchedule('${a.id}', 'dueDays', this.value)">
+                </div>
+                <div>
+                  <label class="field-label" style="font-size:11px;">Условие старта</label>
+                  <select class="input" style="width:100%; padding:6px 8px; font-size:12px;"
+                          onchange="updateAssignmentSchedule('${a.id}', 'startCondition', this.value)">
+                    <option value="course_start" ${(a.startCondition || 'course_start') === 'course_start' ? 'selected' : ''}>
+                      От старта курса
+                    </option>
+                    <option value="prev_complete" ${a.startCondition === 'prev_complete' ? 'selected' : ''}>
+                      После предыдущего
+                    </option>
+                    <option value="manual" ${a.startCondition === 'manual' ? 'selected' : ''}>
+                      Вручную преподавателем
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              ${(a.startCondition || 'course_start') === 'course_start' ? `
+                <div style="margin-top:8px;">
+                  <label class="field-label" style="font-size:11px;">Дней от старта курса</label>
+                  <input type="number" class="input" value="${a.startOffset || 0}" min="0"
+                         style="width:120px; padding:6px 8px; font-size:12px;"
+                         onchange="updateAssignmentSchedule('${a.id}', 'startOffset', this.value)">
+                </div>
+              ` : ''}
+            </div>
+          `).join('')}
+        </div>
+
+        <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--color-border);">
+          <button class="btn btn-primary btn-sm" onclick="saveAssignmentSchedule('${template.id}')">
+            Сохранить график
+          </button>
+        </div>
+      ` : `
+        <div style="text-align:center; padding:30px; color:#9ca3af;">
+          <div style="font-size:24px; margin-bottom:8px;">📅</div>
+          <div>Сначала добавьте задания в курс</div>
+        </div>
+      `}
+    </div>
+  `;
+
+  // Course launch schedule tab content
+  const launchContent = `
+    <div class="card">
+      <div style="font-weight:500; margin-bottom:16px;">График запуска курса</div>
+      <p style="font-size:13px; color:#6b7280; margin-bottom:16px;">
+        Настройте периодичность запуска новых экземпляров курса или укажите конкретные даты.
+      </p>
+
+      <div style="margin-bottom:16px;">
+        <label class="field-label">Режим запуска</label>
+        <select class="textarea" id="launchMode" style="min-height:auto; padding:8px;"
+                onchange="toggleLaunchMode(this.value)">
+          <option value="manual" ${(template.launchMode || 'manual') === 'manual' ? 'selected' : ''}>
+            Вручную администратором
+          </option>
+          <option value="periodic" ${template.launchMode === 'periodic' ? 'selected' : ''}>
+            Периодически
+          </option>
+          <option value="dates" ${template.launchMode === 'dates' ? 'selected' : ''}>
+            По датам
+          </option>
+        </select>
+      </div>
+
+      <div id="launchPeriodicSettings" style="display:${template.launchMode === 'periodic' ? 'block' : 'none'}; margin-bottom:16px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div>
+            <label class="field-label">Периодичность</label>
+            <select class="input" id="launchPeriod" style="width:100%;">
+              <option value="weekly" ${template.launchPeriod === 'weekly' ? 'selected' : ''}>Еженедельно</option>
+              <option value="biweekly" ${template.launchPeriod === 'biweekly' ? 'selected' : ''}>Раз в 2 недели</option>
+              <option value="monthly" ${(template.launchPeriod || 'monthly') === 'monthly' ? 'selected' : ''}>Ежемесячно</option>
+              <option value="quarterly" ${template.launchPeriod === 'quarterly' ? 'selected' : ''}>Ежеквартально</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">День недели / число</label>
+            <select class="input" id="launchDay" style="width:100%;">
+              <option value="1" ${(template.launchDay || '1') === '1' ? 'selected' : ''}>Понедельник / 1-е число</option>
+              <option value="2" ${template.launchDay === '2' ? 'selected' : ''}>Вторник / 2-е число</option>
+              <option value="3" ${template.launchDay === '3' ? 'selected' : ''}>Среда / 3-е число</option>
+              <option value="4" ${template.launchDay === '4' ? 'selected' : ''}>Четверг / 4-е число</option>
+              <option value="5" ${template.launchDay === '5' ? 'selected' : ''}>Пятница / 5-е число</option>
+              <option value="15" ${template.launchDay === '15' ? 'selected' : ''}>15-е число</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:12px;">
+          <label class="field-label">Мин. студентов для запуска</label>
+          <input type="number" class="input" id="minStudents" value="${template.minStudentsForLaunch || 5}" min="1" style="width:120px;">
+        </div>
+      </div>
+
+      <div id="launchDatesSettings" style="display:${template.launchMode === 'dates' ? 'block' : 'none'}; margin-bottom:16px;">
+        <label class="field-label">Запланированные даты запуска</label>
+        <div id="launchDatesList" style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
+          ${(template.launchDates || []).map((date, i) => `
+            <div style="display:flex; align-items:center; gap:8px;">
+              <input type="date" class="input" value="${date}" style="flex:1;">
+              <button class="btn btn-ghost btn-sm" onclick="removeLaunchDate(${i})">✕</button>
+            </div>
+          `).join('') || '<div style="color:#9ca3af; font-size:12px;">Нет запланированных дат</div>'}
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="addLaunchDate()">+ Добавить дату</button>
+      </div>
+
+      <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--color-border);">
+        <button class="btn btn-primary btn-sm" onclick="saveLaunchSchedule('${template.id}')">
+          Сохранить график запуска
+        </button>
+      </div>
+    </div>
+  `;
+
+  // Get content based on current tab
+  let currentContent = infoContent;
+  if (templateEditorTab === 'assignments') currentContent = assignmentsContent;
+  else if (templateEditorTab === 'schedule') currentContent = scheduleContent;
+  else if (templateEditorTab === 'launch') currentContent = launchContent;
+
+  return `
+    <section>
+      ${renderBreadcrumbs([
+        { label: "Шаблоны курсов", action: "methodist-dashboard" },
+        { label: template.title }
+      ])}
+
+      <header class="main-header">
+        <div>
+          <h1 class="main-title">${template.title}</h1>
+          <div class="main-subtitle">${template.code} · ${Data.formatLevel(template.level)}</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost" id="btnBackMethodist">← К списку</button>
+          <button class="btn btn-primary" id="btnSaveTemplateChanges">Сохранить</button>
+        </div>
+      </header>
+
+      <div class="layout-course" style="grid-template-columns: 1fr 280px; margin-top:16px;">
+        <!-- Main content area - LEFT -->
+        <div class="course-main">
+          ${currentContent}
+        </div>
+
+        <!-- Navigation sidebar - RIGHT (like student view) -->
+        <div class="course-sidebar" style="order:2;">
+          <div class="course-sidebar-title">Разделы шаблона</div>
+          <ul class="assignment-list">
+            <li class="assignment-item ${templateEditorTab === 'info' ? 'active' : ''}"
+                onclick="switchTemplateTab('info')"
+                style="cursor:pointer;">
+              <div class="assignment-item-title">📋 Общая информация</div>
+            </li>
+            <li class="assignment-item ${templateEditorTab === 'assignments' ? 'active' : ''}"
+                onclick="switchTemplateTab('assignments')"
+                style="cursor:pointer;">
+              <div class="assignment-item-title">📝 Задания</div>
+              <div class="assignment-item-meta">${assignments.length} шт.</div>
+            </li>
+            <li class="assignment-item ${templateEditorTab === 'schedule' ? 'active' : ''}"
+                onclick="switchTemplateTab('schedule')"
+                style="cursor:pointer;">
+              <div class="assignment-item-title">📅 График заданий</div>
+              <div class="assignment-item-meta">Условия и сроки</div>
+            </li>
+            <li class="assignment-item ${templateEditorTab === 'launch' ? 'active' : ''}"
+                onclick="switchTemplateTab('launch')"
+                style="cursor:pointer;">
+              <div class="assignment-item-title">🚀 График запуска</div>
+              <div class="assignment-item-meta">Периодичность</div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function switchTemplateTab(tab) {
+  templateEditorTab = tab;
+  renderApp();
+}
+
+function changeTemplateStatus(action) {
+  const template = Data.getCourseTemplate(state.currentCourseId);
+  if (!template) return;
+
+  if (action === 'publish') {
+    template.isPublic = true;
+    alert('Курс опубликован в каталоге! (демо)');
+  } else if (action === 'draft') {
+    template.isPublic = false;
+    alert('Курс скрыт из каталога (демо)');
+  } else if (action === 'editing') {
+    alert('Курс переведён в режим редактирования (демо)');
+  }
+
+  renderApp();
+}
+
+// Schedule helper functions
+function updateAssignmentSchedule(assignmentId, field, value) {
+  console.log(`Update ${assignmentId}: ${field} = ${value}`);
+}
+
+function saveAssignmentSchedule(templateId) {
+  alert('График прохождения заданий сохранён! (демо)');
+}
+
+function toggleLaunchMode(mode) {
+  const periodicSettings = document.getElementById('launchPeriodicSettings');
+  const datesSettings = document.getElementById('launchDatesSettings');
+
+  if (periodicSettings) periodicSettings.style.display = mode === 'periodic' ? 'block' : 'none';
+  if (datesSettings) datesSettings.style.display = mode === 'dates' ? 'block' : 'none';
+}
+
+function addLaunchDate() {
+  const list = document.getElementById('launchDatesList');
+  if (list) {
+    const today = new Date().toISOString().split('T')[0];
+    const newItem = document.createElement('div');
+    newItem.style.cssText = 'display:flex; align-items:center; gap:8px;';
+    newItem.innerHTML = `
+      <input type="date" class="input" value="${today}" style="flex:1;">
+      <button class="btn btn-ghost btn-sm" onclick="this.parentElement.remove()">✕</button>
+    `;
+    list.appendChild(newItem);
+  }
+}
+
+function removeLaunchDate(index) {
+  alert('Дата удалена (демо)');
+  renderApp();
+}
+
+function saveLaunchSchedule(templateId) {
+  alert('График запуска курса сохранён! (демо)');
+}
+
+function showAddAssignmentModal(templateId) {
+  const template = Data.getCourseTemplate(templateId);
+  const existingAssignments = Data.getAssignmentTemplatesForCourse(templateId);
+  const nextOrder = existingAssignments.length + 1;
+
+  const content = `
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      <div>
+        <label class="field-label">Название задания *</label>
+        <input type="text" id="new-assignment-title" class="input" placeholder="Введите название" style="width:100%;">
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div>
+          <label class="field-label">Тип контента</label>
+          <select id="new-assignment-type" class="input" style="width:100%;">
+            <option value="practical">Практическое</option>
+            <option value="lecture">Лекция</option>
+            <option value="lab">Лабораторная</option>
+            <option value="test">Тест</option>
+            <option value="essay">Эссе</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">Формат проведения</label>
+          <select id="new-assignment-delivery" class="input" style="width:100%;">
+            <option value="self_study">Самостоятельное</option>
+            <option value="in_person">Очное</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div>
+          <label class="field-label">Порядковый номер</label>
+          <input type="number" id="new-assignment-order" class="input" value="${nextOrder}" min="1" style="width:100%;">
+        </div>
+        <div>
+          <label class="field-label">Обязательное</label>
+          <select id="new-assignment-mandatory" class="input" style="width:100%;">
+            <option value="true">Да</option>
+            <option value="false">Нет</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="field-label">Описание</label>
+        <textarea id="new-assignment-desc" class="textarea" placeholder="Опишите задание" style="min-height:80px;"></textarea>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div>
+          <label class="field-label">Макс. баллов</label>
+          <input type="number" id="new-assignment-score" class="input" value="10" min="1" style="width:100%;">
+        </div>
+        <div>
+          <label class="field-label">Срок (дней)</label>
+          <input type="number" id="new-assignment-days" class="input" value="7" min="1" style="width:100%;">
+        </div>
+      </div>
+
+      <div>
+        <label class="field-label">Тип сдачи</label>
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+          <label style="display:flex; align-items:center; gap:4px; font-size:13px;">
+            <input type="checkbox" id="new-sub-text" checked> Текст
+          </label>
+          <label style="display:flex; align-items:center; gap:4px; font-size:13px;">
+            <input type="checkbox" id="new-sub-file"> Файл
+          </label>
+          <label style="display:flex; align-items:center; gap:4px; font-size:13px;">
+            <input type="checkbox" id="new-sub-link"> Ссылка
+          </label>
+        </div>
+      </div>
+    </div>
+  `;
+
+  openModal('Добавить задание', content, [
+    { label: 'Отмена', className: 'btn-ghost', onClick: 'closeModal()' },
+    { label: 'Добавить', className: 'btn-primary', onClick: `createAssignment('${templateId}')` }
+  ]);
+}
+
+function createAssignment(templateId) {
+  const title = document.getElementById('new-assignment-title')?.value?.trim();
+  if (!title) {
+    alert('Укажите название задания');
+    return;
+  }
+
+  alert('Задание добавлено! (демо)');
+  closeModal();
+  renderApp();
+}
+
+function showEditAssignmentModal(assignmentId) {
+  const assignment = Data.getAssignmentTemplate(assignmentId);
+  if (!assignment) return;
+
+  const content = `
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      <div>
+        <label class="field-label">Название задания *</label>
+        <input type="text" id="edit-assignment-title" class="input" value="${assignment.title}" style="width:100%;">
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div>
+          <label class="field-label">Тип контента</label>
+          <select id="edit-assignment-type" class="input" style="width:100%;">
+            <option value="practical" ${assignment.type === 'practical' ? 'selected' : ''}>Практическое</option>
+            <option value="lecture" ${assignment.type === 'lecture' ? 'selected' : ''}>Лекция</option>
+            <option value="lab" ${assignment.type === 'lab' ? 'selected' : ''}>Лабораторная</option>
+            <option value="test" ${assignment.type === 'test' ? 'selected' : ''}>Тест</option>
+            <option value="essay" ${assignment.type === 'essay' ? 'selected' : ''}>Эссе</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">Формат проведения</label>
+          <select id="edit-assignment-delivery" class="input" style="width:100%;">
+            <option value="self_study" ${(assignment.deliveryMode || 'self_study') === 'self_study' ? 'selected' : ''}>Самостоятельное</option>
+            <option value="in_person" ${assignment.deliveryMode === 'in_person' ? 'selected' : ''}>Очное</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div>
+          <label class="field-label">Порядковый номер</label>
+          <input type="number" id="edit-assignment-order" class="input" value="${assignment.order}" min="1" style="width:100%;">
+        </div>
+        <div>
+          <label class="field-label">Обязательное</label>
+          <select id="edit-assignment-mandatory" class="input" style="width:100%;">
+            <option value="true" ${assignment.isMandatory ? 'selected' : ''}>Да</option>
+            <option value="false" ${!assignment.isMandatory ? 'selected' : ''}>Нет</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="field-label">Описание</label>
+        <textarea id="edit-assignment-desc" class="textarea" style="min-height:80px;">${assignment.description}</textarea>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div>
+          <label class="field-label">Макс. баллов</label>
+          <input type="number" id="edit-assignment-score" class="input" value="${assignment.maxScore}" min="1" style="width:100%;">
+        </div>
+        <div>
+          <label class="field-label">Срок (дней)</label>
+          <input type="number" id="edit-assignment-days" class="input" value="${assignment.dueDays}" min="1" style="width:100%;">
+        </div>
+      </div>
+
+      <div>
+        <label class="field-label">Тип сдачи</label>
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+          <label style="display:flex; align-items:center; gap:4px; font-size:13px;">
+            <input type="checkbox" id="edit-sub-text" ${assignment.submissionType?.includes('text') ? 'checked' : ''}> Текст
+          </label>
+          <label style="display:flex; align-items:center; gap:4px; font-size:13px;">
+            <input type="checkbox" id="edit-sub-file" ${assignment.submissionType?.includes('file') ? 'checked' : ''}> Файл
+          </label>
+          <label style="display:flex; align-items:center; gap:4px; font-size:13px;">
+            <input type="checkbox" id="edit-sub-link" ${assignment.submissionType?.includes('link') ? 'checked' : ''}> Ссылка
+          </label>
+        </div>
+      </div>
+
+      ${assignment.materials?.length > 0 ? `
+        <div>
+          <label class="field-label">Материалы</label>
+          <div style="font-size:12px; color:#6b7280;">
+            ${assignment.materials.map(m => `📎 ${m.title}`).join('<br>')}
+          </div>
+        </div>
+      ` : ''}
+    </div>
+
+    <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--color-border); display:flex; justify-content:space-between;">
+      <button class="btn btn-danger btn-sm" onclick="deleteAssignment('${assignmentId}')">
+        Удалить задание
+      </button>
+    </div>
+  `;
+
+  openModal(`Редактирование: ${assignment.title}`, content, [
+    { label: 'Отмена', className: 'btn-ghost', onClick: 'closeModal()' },
+    { label: 'Сохранить', className: 'btn-primary', onClick: `saveAssignment('${assignmentId}')` }
+  ]);
+}
+
+function saveAssignment(assignmentId) {
+  alert('Изменения сохранены! (демо)');
+  closeModal();
+}
+
+function deleteAssignment(assignmentId) {
+  if (confirm('Удалить это задание?')) {
+    alert('Задание удалено! (демо)');
+    closeModal();
+    renderApp();
+  }
+}

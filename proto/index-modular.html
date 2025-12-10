@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>B3 Learning Portal – Prototype v2 (Modular)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div id="app" class="layout">
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="topbar-title">
+      <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+      <span>Портал обучения B3</span>
+    </div>
+    <div class="topbar-right">
+      <!-- Notification Bell -->
+      <div class="notification-bell" id="notificationBell">
+        <span class="notification-bell-icon">🔔</span>
+        <span class="notification-badge" id="notificationBadge">0</span>
+        <div class="notification-dropdown" id="notificationDropdown"></div>
+      </div>
+      <div id="topbarRole" class="chip"></div>
+      <div class="chip">prototype v2 modular</div>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div>
+      <div class="sidebar-section-title">Роль (демо)</div>
+      <select id="roleSelect" class="role-select" onchange="handleRoleChange(this.value)">
+        <option value="anonymous">👤 Гость (аноним)</option>
+        <option value="student">🎓 Студент</option>
+        <option value="methodist">📋 Методист</option>
+        <option value="teacher">👨‍🏫 Преподаватель</option>
+        <option value="admin">⚙️ Администратор</option>
+      </select>
+    </div>
+
+    <div style="flex:1; min-height:0;">
+      <div class="sidebar-section-title">Навигация</div>
+      <ul id="sidebarCourseList" class="course-list"></ul>
+    </div>
+
+    <div style="padding-top:12px; border-top:1px solid var(--color-border); margin-top:auto;">
+      <div style="color:var(--color-text-muted); font-size:10px; line-height:1.4;">
+        Прототип портала обучения B3<br>
+        Модульная версия • Данные в памяти браузера
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main id="main" class="main"></main>
+</div>
+
+<!-- Data Layer -->
+<script src="data.js"></script>
+
+<!-- Application Modules (load order matters!) -->
+<script src="modules/state.js"></script>
+<script src="modules/helpers.js"></script>
+<script src="modules/navigation.js"></script>
+<script src="modules/guest.js"></script>
+<script src="modules/student.js"></script>
+<script src="modules/methodist.js"></script>
+<script src="modules/teacher.js"></script>
+<script src="modules/admin.js"></script>
+<script src="modules/main.js"></script>
+</body>
+</html>

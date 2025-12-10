@@ -1,0 +1,1445 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>B3 Learning Portal – Prototype v1 (Original)</title>
+  <!--
+    НОВАЯ ВЕРСИЯ: ./proto/index.html
+    Улучшенный прототип с:
+    - Тремя ролями (Студент, Преподаватель, Администратор)
+    - Каталогом курсов и заявками на запись
+    - Загрузкой файлов в заданиях
+    - Уведомлениями
+    - Модальными окнами для оценивания
+    - Раздельными файлами CSS/JS/Data
+  -->
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f3f5f8;
+      color: #222;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-rows: 56px auto;
+      grid-template-columns: 260px auto;
+      grid-template-areas:
+        "topbar topbar"
+        "sidebar main";
+      height: 100vh;
+    }
+
+    .topbar {
+      grid-area: topbar;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      background: #121826;
+      color: #fff;
+    }
+
+    .topbar-title {
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+    }
+
+    .chip {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .sidebar {
+      grid-area: sidebar;
+      background: #192132;
+      color: #cfd8e3;
+      padding: 12px 10px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .sidebar-section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      opacity: 0.7;
+      margin-bottom: 4px;
+    }
+
+    .role-switch {
+      display: flex;
+      gap: 6px;
+    }
+
+    .role-btn {
+      flex: 1;
+      border-radius: 999px;
+      border: 0;
+      font-size: 12px;
+      padding: 6px 8px;
+      cursor: pointer;
+      background: transparent;
+      color: #cfd8e3;
+      border: 1px solid rgba(236, 239, 244, 0.18);
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+
+    .role-btn.active {
+      background: #4ade80;
+      color: #052e16;
+      border-color: #4ade80;
+      font-weight: 600;
+    }
+
+    .course-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      overflow-y: auto;
+    }
+
+    .course-list-item {
+      border-radius: 8px;
+      padding: 8px 10px;
+      cursor: pointer;
+      font-size: 13px;
+      background: transparent;
+      border: 1px solid transparent;
+      transition: background 0.12s, border-color 0.12s, transform 0.05s;
+    }
+
+    .course-list-item:hover {
+      background: rgba(148, 163, 184, 0.12);
+    }
+
+    .course-list-item.active {
+      background: #0f172a;
+      border-color: #4ade80;
+      transform: translateX(1px);
+    }
+
+    .course-list-item-title {
+      font-weight: 500;
+      color: #e5e7eb;
+      margin-bottom: 2px;
+    }
+
+    .course-list-item-meta {
+      font-size: 11px;
+      opacity: 0.8;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .badge {
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-size: 11px;
+      border: 1px solid;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .badge-status {
+      border-color: rgba(148, 163, 184, 0.5);
+      color: #e5e7eb;
+    }
+
+    .badge-status.done {
+      border-color: #4ade80;
+      color: #bbf7d0;
+      background: rgba(34,197,94,0.1);
+    }
+
+    .badge-status.in-progress {
+      border-color: #fbbf24;
+      color: #facc15;
+      background: rgba(251,191,36,0.08);
+    }
+
+    .main {
+      grid-area: main;
+      padding: 16px 20px 18px;
+      overflow: auto;
+    }
+
+    .main-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      gap: 16px;
+    }
+
+    .main-title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .main-subtitle {
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 14px;
+      margin-top: 8px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 14px 14px 12px;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .card-header-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .card-meta {
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    .progress-bar {
+      position: relative;
+      height: 6px;
+      border-radius: 999px;
+      background: #e5e7eb;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      border-radius: 999px;
+      background: #4ade80;
+      transition: width 0.25s ease-out;
+    }
+
+    .btn {
+      border-radius: 999px;
+      border: 0;
+      padding: 6px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #111827;
+      color: #f9fafb;
+      transition: background 0.15s, transform 0.05s, box-shadow 0.15s;
+    }
+
+    .btn:hover {
+      background: #020617;
+      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.25);
+      transform: translateY(-1px);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid #d1d5db;
+      color: #374151;
+      box-shadow: none;
+    }
+
+    .btn-ghost:hover {
+      background: #f3f4f6;
+    }
+
+    .layout-course {
+      display: grid;
+      grid-template-columns: minmax(230px, 280px) minmax(0, 1fr);
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .course-sidebar {
+      background: #fff;
+      border-radius: 14px;
+      padding: 10px 10px 12px;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+      font-size: 13px;
+    }
+
+    .course-sidebar-title {
+      font-weight: 600;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+
+    .assignment-list {
+      list-style: none;
+      padding: 0;
+      margin: 4px 0 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: calc(100vh - 200px);
+      overflow-y: auto;
+    }
+
+    .assignment-item {
+      border-radius: 8px;
+      padding: 8px 8px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: background 0.12s, border-color 0.12s;
+    }
+
+    .assignment-item:hover {
+      background: #f9fafb;
+    }
+
+    .assignment-item.active {
+      background: #eff6ff;
+      border-color: #2563eb;
+    }
+
+    .assignment-item-title {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .assignment-item-meta {
+      font-size: 11px;
+      color: #6b7280;
+      display: flex;
+      justify-content: space-between;
+      margin-top: 2px;
+    }
+
+    .course-main {
+      background: #fff;
+      border-radius: 14px;
+      padding: 14px 16px 16px;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+      min-height: 240px;
+      font-size: 13px;
+    }
+
+    .course-main-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .course-main-header h2 {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .tag {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+    }
+
+    .field-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #9ca3af;
+      margin-top: 8px;
+      margin-bottom: 4px;
+    }
+
+    .field-value {
+      font-size: 13px;
+    }
+
+    .assignment-header-line {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .pill {
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+    }
+
+    .pill.status-submitted {
+      border-color: #fbbf24;
+      background: #fffbeb;
+      color: #92400e;
+    }
+
+    .pill.status-accepted {
+      border-color: #4ade80;
+      background: #ecfdf5;
+      color: #166534;
+    }
+
+    .pill.status-draft {
+      border-color: #e5e7eb;
+      background: #f9fafb;
+      color: #4b5563;
+    }
+
+    .textarea {
+      width: 100%;
+      min-height: 80px;
+      resize: vertical;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid #d1d5db;
+      font-family: inherit;
+      font-size: 13px;
+    }
+
+    .textarea:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 1px #2563eb22;
+    }
+
+    .comments {
+      margin-top: 12px;
+      border-top: 1px solid #e5e7eb;
+      padding-top: 10px;
+    }
+
+    .comment {
+      padding: 6px 8px;
+      border-radius: 8px;
+      background: #f9fafb;
+      margin-bottom: 6px;
+      font-size: 12px;
+    }
+
+    .comment-header {
+      font-size: 11px;
+      color: #6b7280;
+      margin-bottom: 2px;
+    }
+
+    .comment-body {
+      white-space: pre-line;
+    }
+
+    /* Gradebook */
+    .gradebook-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+
+    .gradebook-table th,
+    .gradebook-table td {
+      border: 1px solid #e5e7eb;
+      padding: 6px 8px;
+      text-align: left;
+    }
+
+    .gradebook-table th {
+      background: #f9fafb;
+      font-weight: 500;
+    }
+
+    .grade-cell-status-accepted {
+      background: #ecfdf5;
+    }
+
+    .grade-cell-status-submitted {
+      background: #fffbeb;
+    }
+
+    .grade-cell-status-draft {
+      background: #f9fafb;
+    }
+
+    .cert-card {
+      background: #f9fafb;
+      border-radius: 12px;
+      padding: 10px 12px;
+      border: 1px dashed #d1d5db;
+      margin-top: 6px;
+      font-size: 12px;
+    }
+
+    .cert-title {
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+
+    @media (max-width: 880px) {
+      .layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: 56px auto auto;
+        grid-template-areas:
+          "topbar"
+          "sidebar"
+          "main";
+      }
+
+      .sidebar {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 8px 12px;
+      }
+
+      .course-list {
+        max-height: 120px;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+      }
+
+      .course-list-item {
+        min-width: 200px;
+      }
+
+      .layout-course {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+<div id="app" class="layout">
+  <header class="topbar">
+    <div class="topbar-title">Портал обучения B3 · прототип</div>
+    <div class="topbar-right">
+      <div id="topbarRole" class="chip"></div>
+      <div class="chip">mock&nbsp;data · no&nbsp;backend</div>
+    </div>
+  </header>
+
+  <aside class="sidebar">
+    <div>
+      <div class="sidebar-section-title">Роль</div>
+      <div class="role-switch">
+        <button class="role-btn" data-role="student">Студент</button>
+        <button class="role-btn" data-role="teacher">Преподаватель</button>
+      </div>
+    </div>
+
+    <div style="flex:1; min-height:0;">
+      <div class="sidebar-section-title">Мои курсы</div>
+      <ul id="sidebarCourseList" class="course-list"></ul>
+    </div>
+  </aside>
+
+  <main id="main" class="main"></main>
+</div>
+
+<script type="module">
+  // ===== Mock data (максимально приближено к сущностям B3) =====
+
+  const mockStudent = {
+    id: "student-1",
+    name: "Иван Студентов",
+  };
+
+  const mockTeacher = {
+    id: "teacher-1",
+    name: "Анна Преподаватель",
+  };
+
+  /** Курсы (аналог Шаблон курса + Экземпляр курса) */
+  const courses = [
+    {
+      id: "course-basic",
+      title: "Основы платформы B3",
+      code: "B3-101",
+      level: "Базовый",
+      description:
+        "Пошаговый курс по основным понятиям платформы B3: объекты данных, интерфейсы, процессы.",
+      teacherId: mockTeacher.id,
+      status: "active",
+      assignments: [
+        {
+          id: "a-intro",
+          title: "Знакомство с порталом",
+          type: "lecture",
+          order: 1,
+          dueDays: null,
+        },
+        {
+          id: "a-objects",
+          title: "Создание первого справочника",
+          type: "lab",
+          order: 2,
+          dueDays: 3,
+        },
+        {
+          id: "a-process",
+          title: "Простой бизнес-процесс BPMN",
+          type: "lab",
+          order: 3,
+          dueDays: 7,
+        },
+      ],
+    },
+    {
+      id: "course-advanced",
+      title: "Продвинутые сценарии на B3",
+      code: "B3-201",
+      level: "Продвинутый",
+      description:
+        "Работа с интеграциями, RESTQL, подготовка витрин и сложных интерфейсов.",
+      teacherId: mockTeacher.id,
+      status: "planned",
+      assignments: [
+        {
+          id: "a-rest",
+          title: "RESTQL-запросы к внешним системам",
+          type: "lab",
+          order: 1,
+          dueDays: 5,
+        },
+        {
+          id: "a-dashboard",
+          title: "Создание дашборда успеваемости",
+          type: "project",
+          order: 2,
+          dueDays: 10,
+        },
+      ],
+    },
+  ];
+
+  /** Записи на курсы (Enrollment) с прогрессом и статусом */
+  const enrollments = [
+    {
+      id: "enr1",
+      courseId: "course-basic",
+      studentId: mockStudent.id,
+      status: "in_progress", // not_started | in_progress | completed
+      progress: 0.66,
+    },
+    {
+      id: "enr2",
+      courseId: "course-advanced",
+      studentId: mockStudent.id,
+      status: "not_started",
+      progress: 0.0,
+    },
+  ];
+
+  /** Экземпляры заданий для студента (AssignmentInstance) */
+  const assignmentInstances = [
+    {
+      id: "inst-intro",
+      courseId: "course-basic",
+      assignmentId: "a-intro",
+      studentId: mockStudent.id,
+      status: "accepted", // draft | submitted | accepted
+      grade: 100,
+      submissionText: "Ознакомился с порталом и заполнил профиль.",
+      comments: [
+        {
+          id: "c1",
+          authorId: mockTeacher.id,
+          authorRole: "teacher",
+          text: "Отличное начало, спасибо за обратную связь!",
+          createdAt: "2025-12-01 10:15",
+        },
+      ],
+    },
+    {
+      id: "inst-objects",
+      courseId: "course-basic",
+      assignmentId: "a-objects",
+      studentId: mockStudent.id,
+      status: "submitted",
+      grade: null,
+      submissionText:
+        "Создан справочник 'Курс', настроены поля и базовая форма просмотра.",
+      comments: [
+        {
+          id: "c2",
+          authorId: mockStudent.id,
+          authorRole: "student",
+          text: "Не уверён, правильно ли сделал связь с пользователем преподавателя.",
+          createdAt: "2025-12-02 18:42",
+        },
+        {
+          id: "c3",
+          authorId: mockTeacher.id,
+          authorRole: "teacher",
+          text: "Связь сделана корректно. На следующем шаге добавим роли и права доступа.",
+          createdAt: "2025-12-03 09:12",
+        },
+      ],
+    },
+    {
+      id: "inst-process",
+      courseId: "course-basic",
+      assignmentId: "a-process",
+      studentId: mockStudent.id,
+      status: "draft",
+      grade: null,
+      submissionText: "",
+      comments: [],
+    },
+    // продвинутый курс пока не начат
+    {
+      id: "inst-rest",
+      courseId: "course-advanced",
+      assignmentId: "a-rest",
+      studentId: mockStudent.id,
+      status: "draft",
+      grade: null,
+      submissionText: "",
+      comments: [],
+    },
+    {
+      id: "inst-dashboard",
+      courseId: "course-advanced",
+      assignmentId: "a-dashboard",
+      studentId: mockStudent.id,
+      status: "draft",
+      grade: null,
+      submissionText: "",
+      comments: [],
+    },
+  ];
+
+  /** Сертификаты */
+  const certificates = [
+    {
+      id: "cert-basic",
+      studentId: mockStudent.id,
+      courseId: "course-basic",
+      title: "Сертификат об окончании курса «Основы платформы B3»",
+      issuedAt: "2025-11-30",
+      serial: "B3-101-2025-0001",
+      downloadUrl: "#mock-pdf-basic",
+    },
+  ];
+
+  // ===== App state =====
+
+  const state = {
+    role: "student", // 'student' | 'teacher'
+    currentCourseId: "course-basic",
+    currentAssignmentId: "a-objects",
+  };
+
+  // ===== Helper functions =====
+
+  const getCourse = (courseId) => courses.find((c) => c.id === courseId);
+
+  const getEnrollment = (courseId, studentId) =>
+    enrollments.find(
+      (e) => e.courseId === courseId && e.studentId === studentId
+    );
+
+  const getAssignmentInstance = (courseId, assignmentId, studentId) =>
+    assignmentInstances.find(
+      (ai) =>
+        ai.courseId === courseId &&
+        ai.assignmentId === assignmentId &&
+        ai.studentId === studentId
+    );
+
+  const formatStatusLabel = (status) => {
+    switch (status) {
+      case "not_started":
+        return "Не начат";
+      case "in_progress":
+        return "В процессе";
+      case "completed":
+        return "Пройден";
+      default:
+        return status;
+    }
+  };
+
+  const formatAssignmentStatusLabel = (status) => {
+    switch (status) {
+      case "draft":
+        return "Не начато";
+      case "submitted":
+        return "На проверке";
+      case "accepted":
+        return "Принято";
+      default:
+        return status;
+    }
+  };
+
+  const formatAssignmentType = (type) => {
+    switch (type) {
+      case "lecture":
+        return "Лекция";
+      case "lab":
+        return "Практика";
+      case "project":
+        return "Проект";
+      default:
+        return type;
+    }
+  };
+
+  const teacherNameById = (teacherId) =>
+    teacherId === mockTeacher.id ? mockTeacher.name : "Преподаватель";
+
+  // ===== Rendering =====
+
+  const mainEl = document.getElementById("main");
+  const sidebarCourseListEl = document.getElementById("sidebarCourseList");
+  const topbarRoleEl = document.getElementById("topbarRole");
+
+  function renderSidebarCourses() {
+    const html = courses
+      .map((course) => {
+        const enr = getEnrollment(course.id, mockStudent.id);
+        const progressPercent = enr ? Math.round((enr.progress || 0) * 100) : 0;
+        const statusBadgeClass =
+          enr?.status === "completed"
+            ? "badge-status done"
+            : enr?.status === "in_progress"
+            ? "badge-status in-progress"
+            : "badge-status";
+
+        return `
+          <li
+            class="course-list-item ${
+              state.currentCourseId === course.id ? "active" : ""
+            }"
+            data-course-id="${course.id}"
+          >
+            <div class="course-list-item-title">${course.title}</div>
+            <div class="course-list-item-meta">
+              <span>${course.code}</span>
+              <span>${progressPercent}%</span>
+            </div>
+            <div style="margin-top:4px;">
+              <span class="badge ${statusBadgeClass}">
+                ${enr ? formatStatusLabel(enr.status) : "Не записан"}
+              </span>
+            </div>
+          </li>
+        `;
+      })
+      .join("");
+
+    sidebarCourseListEl.innerHTML = html;
+
+    sidebarCourseListEl
+      .querySelectorAll(".course-list-item")
+      .forEach((li) => {
+        li.addEventListener("click", () => {
+          const courseId = li.getAttribute("data-course-id");
+          state.currentCourseId = courseId;
+          const course = getCourse(courseId);
+          const firstAssignmentId = course.assignments[0]?.id;
+          if (firstAssignmentId) {
+            state.currentAssignmentId = firstAssignmentId;
+          }
+          renderApp();
+        });
+      });
+  }
+
+  function renderStudentDashboard() {
+    const cardsHtml = enrollments
+      .filter((e) => e.studentId === mockStudent.id)
+      .map((enr) => {
+        const course = getCourse(enr.courseId);
+        const progressPercent = Math.round((enr.progress || 0) * 100);
+
+        // Next assignment: первое не accepted
+        const nextAssignment =
+          course.assignments.find((a) => {
+            const ai = getAssignmentInstance(
+              course.id,
+              a.id,
+              mockStudent.id
+            );
+            return !ai || ai.status !== "accepted";
+          }) || course.assignments[course.assignments.length - 1];
+
+        const statusBadgeClass =
+          enr.status === "completed"
+            ? "badge-status done"
+            : enr.status === "in_progress"
+            ? "badge-status in-progress"
+            : "badge-status";
+
+        return `
+          <article class="card" data-course-id="${course.id}">
+            <div class="card-header-line">
+              <div>
+                <div class="card-title">${course.title}</div>
+                <div class="card-meta">
+                  ${course.code} · ${
+          course.level
+        } · Преподаватель: ${teacherNameById(course.teacherId)}
+                </div>
+              </div>
+              <span class="badge ${statusBadgeClass}">
+                ${formatStatusLabel(enr.status)}
+              </span>
+            </div>
+
+            <div>
+              <div class="card-meta" style="margin-bottom:4px;">Прогресс курса</div>
+              <div class="progress-bar">
+                <div class="progress-bar-fill" style="width: ${progressPercent}%;"></div>
+              </div>
+            </div>
+
+            <div class="card-meta">
+              Следующий шаг:
+              <strong>${nextAssignment ? nextAssignment.title : "все задания выполнены"}</strong>
+            </div>
+
+            <div class="card-header-line" style="margin-top:4px;">
+              <button class="btn btn-continue" data-course-id="${course.id}">
+                Продолжить курс
+              </button>
+              <button class="btn btn-ghost btn-cert" data-course-id="${course.id}">
+                Сертификаты
+              </button>
+            </div>
+          </article>
+        `;
+      })
+      .join("");
+
+    mainEl.innerHTML = `
+      <section>
+        <header class="main-header">
+          <div>
+            <h1 class="main-title">Личный кабинет студента</h1>
+            <div class="main-subtitle">
+              Курсы, прогресс по заданиям и быстрый переход к следующему шагу.
+            </div>
+          </div>
+          <button class="btn btn-ghost" id="btnViewCertificates">Мои сертификаты</button>
+        </header>
+
+        <section>
+          <h2 style="font-size:14px;margin:6px 0 4px;">Мои курсы</h2>
+          <div class="cards-grid">
+            ${cardsHtml || "<div class='main-subtitle'>Нет активных курсов.</div>"}
+          </div>
+        </section>
+      </section>
+    `;
+
+    // Handlers
+    mainEl.querySelectorAll(".btn-continue").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const courseId = btn.getAttribute("data-course-id");
+        state.currentCourseId = courseId;
+        const course = getCourse(courseId);
+        const firstAssignmentId = course.assignments[0]?.id;
+        if (firstAssignmentId) {
+          state.currentAssignmentId = firstAssignmentId;
+        }
+        renderApp();
+      });
+    });
+
+    mainEl.querySelectorAll(".btn-cert").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        renderStudentCertificates();
+      });
+    });
+
+    const btnViewCertificates = document.getElementById("btnViewCertificates");
+    if (btnViewCertificates) {
+      btnViewCertificates.addEventListener("click", () => {
+        renderStudentCertificates();
+      });
+    }
+  }
+
+  function renderStudentCertificates() {
+    const myCerts = certificates.filter(
+      (c) => c.studentId === mockStudent.id
+    );
+
+    const htmlCerts = myCerts
+      .map((cert) => {
+        const course = getCourse(cert.courseId);
+        return `
+          <div class="cert-card">
+            <div class="cert-title">${cert.title}</div>
+            <div>Курс: <strong>${course.title}</strong></div>
+            <div>Дата выдачи: ${cert.issuedAt}</div>
+            <div>Серийный номер: ${cert.serial}</div>
+            <div style="margin-top:6px;">
+              <button class="btn btn-ghost" onclick="alert('В реальной системе тут открывается PDF из B3-печатной формы');">
+                Скачать PDF
+              </button>
+            </div>
+          </div>
+        `;
+      })
+      .join("");
+
+    mainEl.innerHTML = `
+      <section>
+        <header class="main-header">
+          <div>
+            <h1 class="main-title">Мои сертификаты</h1>
+            <div class="main-subtitle">
+              Здесь будут отображаться все выданные сертификаты Б3-курсов.
+            </div>
+          </div>
+          <button class="btn btn-ghost" id="btnBackToDashboard">К дашборду</button>
+        </header>
+
+        <section>
+          ${
+            htmlCerts ||
+            "<div class='main-subtitle'>Сертификатов пока нет. Пройдите хотя бы один курс до конца.</div>"
+          }
+        </section>
+      </section>
+    `;
+
+    const btnBack = document.getElementById("btnBackToDashboard");
+    if (btnBack) {
+      btnBack.addEventListener("click", () => {
+        renderStudentDashboard();
+      });
+    }
+  }
+
+  function renderCourseView(courseId) {
+    const course = getCourse(courseId);
+    const enr = getEnrollment(courseId, mockStudent.id);
+    const progressPercent = enr ? Math.round((enr.progress || 0) * 100) : 0;
+
+    const sidebarAssignmentsHtml = course.assignments
+      .map((a) => {
+        const ai = getAssignmentInstance(course.id, a.id, mockStudent.id);
+        const status = ai ? ai.status : "draft";
+        return `
+          <li class="assignment-item ${
+            state.currentAssignmentId === a.id ? "active" : ""
+          }" data-assignment-id="${a.id}">
+            <div class="assignment-item-title">${a.order}. ${
+          a.title
+        }</div>
+            <div class="assignment-item-meta">
+              <span>${formatAssignmentType(a.type)}</span>
+              <span>${formatAssignmentStatusLabel(status)}</span>
+            </div>
+          </li>
+        `;
+      })
+      .join("");
+
+    mainEl.innerHTML = `
+      <section>
+        <header class="main-header">
+          <div>
+            <h1 class="main-title">${course.title}</h1>
+            <div class="main-subtitle">
+              Код курса: ${course.code} · Уровень: ${course.level} · Преподаватель: ${teacherNameById(
+      course.teacherId
+    )}
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <div style="min-width:120px;">
+              <div class="card-meta" style="margin-bottom:2px;">Прогресс курса</div>
+              <div class="progress-bar">
+                <div class="progress-bar-fill" style="width:${progressPercent}%;"></div>
+              </div>
+            </div>
+            <button class="btn btn-ghost" id="btnToDashboard">К моим курсам</button>
+          </div>
+        </header>
+
+        <section class="layout-course">
+          <aside class="course-sidebar">
+            <div class="course-sidebar-title">Структура курса</div>
+            <div class="card-meta">Задания и материалы</div>
+            <ul class="assignment-list">
+              ${sidebarAssignmentsHtml}
+            </ul>
+          </aside>
+
+          <section class="course-main" id="courseMainPanel">
+            <!-- сюда подставляем карточку активного задания -->
+          </section>
+        </section>
+      </section>
+    `;
+
+    // Навесить обработчики на список заданий
+    mainEl
+      .querySelectorAll(".assignment-item")
+      .forEach((item) =>
+        item.addEventListener("click", () => {
+          state.currentAssignmentId = item.getAttribute("data-assignment-id");
+          renderCourseView(courseId); // перерисуем, чтобы обновить подсветку и панель задания
+        })
+      );
+
+    // Кнопка "К моим курсам"
+    const btnBack = document.getElementById("btnToDashboard");
+    btnBack.addEventListener("click", () => {
+      renderStudentDashboard();
+    });
+
+    // Вставить карточку активного задания
+    renderAssignmentView(courseId, state.currentAssignmentId);
+  }
+
+  function renderAssignmentView(courseId, assignmentId) {
+    const course = getCourse(courseId);
+    const assignment = course.assignments.find((a) => a.id === assignmentId);
+    const ai = getAssignmentInstance(courseId, assignmentId, mockStudent.id);
+
+    const panel = document.getElementById("courseMainPanel");
+    if (!panel || !assignment) return;
+
+    const status = ai ? ai.status : "draft";
+    const pillStatusClass = `pill status-${status}`;
+
+    const commentsHtml =
+      ai && ai.comments && ai.comments.length
+        ? ai.comments
+            .map(
+              (c) => `
+          <div class="comment">
+            <div class="comment-header">
+              ${
+                c.authorRole === "teacher"
+                  ? "Преподаватель"
+                  : "Студент"
+              } · ${c.createdAt}
+            </div>
+            <div class="comment-body">${c.text}</div>
+          </div>
+        `
+            )
+            .join("")
+        : `<div class="main-subtitle">Комментариев пока нет.</div>`;
+
+    panel.innerHTML = `
+      <header class="course-main-header">
+        <div>
+          <h2>${assignment.title}</h2>
+          <div class="card-meta">
+            ${formatAssignmentType(assignment.type)} · Задание ${
+      assignment.order
+    } из ${course.assignments.length}
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+          <span class="${pillStatusClass}">
+            Статус: ${formatAssignmentStatusLabel(status)}
+          </span>
+          <span class="tag">Дедлайн: ${
+            assignment.dueDays
+              ? `через ${assignment.dueDays} дней`
+              : "без ограничения"
+          }</span>
+        </div>
+      </header>
+
+      <section>
+        <div class="field-label">Описание</div>
+        <div class="field-value">
+          ${
+            assignment.id === "a-objects"
+              ? "Создайте в B3 справочник «Курс» с полями: Код, Название, Тип, Преподаватель. Настройте форму списка и карточки. В реальной системе здесь можно показать встроенное видео или ссылку на документацию."
+              : assignment.id === "a-process"
+              ? "Постройте простой BPMN-процесс, который обрабатывает заявки на курс. Отразите статусы: Новая → На согласовании → Одобрена/Отклонена."
+              : "Текст задания. В B3 сюда можно подставлять HTML/Markdown, ссылки, файлы, видео."
+          }
+        </div>
+
+        <div class="field-label">Моё решение</div>
+        <textarea class="textarea" id="submissionText" placeholder="Опишите, что вы сделали, или вставьте ссылку на стенд. В прототипе текст никуда не сохраняется.">${
+          ai?.submissionText || ""
+        }</textarea>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:8px;">
+          <div class="card-meta">
+            ${
+              ai?.grade != null
+                ? `Оценка: <strong>${ai.grade} / 100</strong>`
+                : "Оценка ещё не выставлена"
+            }
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-ghost" id="btnSaveDraft">Сохранить черновик</button>
+            <button class="btn" id="btnSubmitAssignment">Отправить на проверку</button>
+          </div>
+        </div>
+
+        <div class="comments">
+          <div class="field-label">Комментарии</div>
+          ${commentsHtml}
+        </div>
+      </section>
+    `;
+
+    // Прототипно: меняем статус в мок-данных в памяти
+    const btnSaveDraft = document.getElementById("btnSaveDraft");
+    const btnSubmitAssignment = document.getElementById("btnSubmitAssignment");
+    const submissionTextEl = document.getElementById("submissionText");
+
+    btnSaveDraft.addEventListener("click", () => {
+      if (ai) {
+        ai.submissionText = submissionTextEl.value;
+        ai.status = "draft";
+      }
+      alert("В прототипе черновик сохранён только в памяти JS. В реальной системе это будет запись B3.");
+      renderAssignmentView(courseId, assignmentId);
+    });
+
+    btnSubmitAssignment.addEventListener("click", () => {
+      if (ai) {
+        ai.submissionText = submissionTextEl.value;
+        ai.status = "submitted";
+      }
+      alert("Задание отправлено на проверку (в прототипе только смена статуса). В B3 это запустит BPMN-процесс проверки.");
+      renderAssignmentView(courseId, assignmentId);
+    });
+  }
+
+  // ===== Teacher view =====
+
+  function renderTeacherGradebook(courseId) {
+    const course = getCourse(courseId);
+    const courseAssignments = course.assignments;
+    const students = [mockStudent]; // В прототипе один студент
+
+    const headerCells = courseAssignments
+      .map((a) => `<th>${a.order}. ${a.title}</th>`)
+      .join("");
+
+    const rowsHtml = students
+      .map((student) => {
+        const cells = courseAssignments
+          .map((a) => {
+            const ai = getAssignmentInstance(
+              course.id,
+              a.id,
+              student.id
+            );
+            const status = ai ? ai.status : "draft";
+            const gradeLabel =
+              ai && ai.grade != null ? `${ai.grade}` : "";
+            return `
+              <td class="grade-cell-status-${status}">
+                ${formatAssignmentStatusLabel(status)} ${
+              gradeLabel ? `(${gradeLabel})` : ""
+            }
+              </td>
+            `;
+          })
+          .join("");
+
+        return `
+          <tr>
+            <td>${student.name}</td>
+            ${cells}
+          </tr>
+        `;
+      })
+      .join("");
+
+    mainEl.innerHTML = `
+      <section>
+        <header class="main-header">
+          <div>
+            <h1 class="main-title">Табель успеваемости · ${course.title}</h1>
+            <div class="main-subtitle">
+              Обзор статусов и оценок по заданиям для каждого слушателя.
+            </div>
+          </div>
+          <button class="btn btn-ghost" id="btnTeacherBack">К списку курсов</button>
+        </header>
+
+        <section>
+          <table class="gradebook-table">
+            <thead>
+              <tr>
+                <th>Слушатель</th>
+                ${headerCells}
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+        </section>
+      </section>
+    `;
+
+    document
+      .getElementById("btnTeacherBack")
+      .addEventListener("click", () => renderTeacherDashboard());
+  }
+
+  function renderTeacherDashboard() {
+    const cardsHtml = courses
+      .map((course) => {
+        const enrCount = enrollments.filter(
+          (e) => e.courseId === course.id
+        ).length;
+
+        return `
+          <article class="card">
+            <div class="card-header-line">
+              <div>
+                <div class="card-title">${course.title}</div>
+                <div class="card-meta">${course.code} · ${course.level}</div>
+              </div>
+              <span class="badge badge-status">
+                Слушателей: ${enrCount}
+              </span>
+            </div>
+            <div class="card-meta">
+              ${course.description}
+            </div>
+            <div class="card-header-line" style="margin-top:6px;">
+              <button class="btn btn-continue-teacher" data-course-id="${course.id}">
+                Табель успеваемости
+              </button>
+              <button class="btn btn-ghost" onclick="alert('В реальной системе откроется конструктор курса Б3')">
+                Настроить курс
+              </button>
+            </div>
+          </article>
+        `;
+      })
+      .join("");
+
+    mainEl.innerHTML = `
+      <section>
+        <header class="main-header">
+          <div>
+            <h1 class="main-title">Рабочее место преподавателя</h1>
+            <div class="main-subtitle">
+              Управление курсами, заданиями и мониторинг прогресса слушателей.
+            </div>
+          </div>
+        </header>
+
+        <section>
+          <h2 style="font-size:14px;margin:6px 0 4px;">Курсы</h2>
+          <div class="cards-grid">
+            ${cardsHtml}
+          </div>
+        </section>
+      </section>
+    `;
+
+    mainEl
+      .querySelectorAll(".btn-continue-teacher")
+      .forEach((btn) =>
+        btn.addEventListener("click", () => {
+          const courseId = btn.getAttribute("data-course-id");
+          state.currentCourseId = courseId;
+          renderTeacherGradebook(courseId);
+        })
+      );
+  }
+
+  // ===== Root render =====
+
+  function syncRoleButtons() {
+    document
+      .querySelectorAll(".role-btn")
+      .forEach((btn) => {
+        const role = btn.getAttribute("data-role");
+        btn.classList.toggle("active", role === state.role);
+      });
+
+    topbarRoleEl.textContent =
+      state.role === "student"
+        ? `Роль: студент (${mockStudent.name})`
+        : `Роль: преподаватель (${mockTeacher.name})`;
+  }
+
+  function renderApp() {
+    syncRoleButtons();
+    renderSidebarCourses();
+    if (state.role === "student") {
+      // если выбран курс — показываем страницу курса; иначе дашборд
+      if (state.currentCourseId) {
+        renderCourseView(state.currentCourseId);
+      } else {
+        renderStudentDashboard();
+      }
+    } else {
+      renderTeacherDashboard();
+    }
+  }
+
+  // ===== Event wiring =====
+
+  document
+    .querySelectorAll(".role-btn")
+    .forEach((btn) =>
+      btn.addEventListener("click", () => {
+        const role = btn.getAttribute("data-role");
+        state.role = role;
+        renderApp();
+      })
+    );
+
+  // ===== Initial render =====
+
+  renderApp();
+</script>
+</body>
+</html>
