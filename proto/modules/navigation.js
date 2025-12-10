@@ -69,18 +69,24 @@ function renderSidebar() {
       </li>
     `;
   } else if (state.role === "teacher") {
+    const user = getCurrentUser();
+    const pendingCount = Data.assignmentInstances.filter(ai =>
+      ai.status === 'submitted' &&
+      Data.courseInstances.some(ci => ci.teacherId === user.id && ci.id === ai.courseInstanceId)
+    ).length;
+
     sidebar.innerHTML = `
       <li class="course-list-item ${state.currentView === "teacherDashboard" ? "active" : ""}"
           onclick="navigateTo('teacherDashboard')">
-        <div class="course-list-item-title">📊 Мои курсы</div>
+        <div class="course-list-item-title">🏠 Личный кабинет</div>
       </li>
-      <li class="course-list-item ${state.currentView === "teacherGrading" ? "active" : ""}"
-          onclick="navigateTo('teacherGrading')">
-        <div class="course-list-item-title">✅ На проверке</div>
+      <li class="course-list-item ${state.currentView === "teacherCourses" || state.currentView === "teacherCourseDetail" ? "active" : ""}"
+          onclick="navigateTo('teacherCourses')">
+        <div class="course-list-item-title">📚 Курсы</div>
       </li>
-      <li class="course-list-item ${state.currentView === "teacherMessages" ? "active" : ""}"
-          onclick="navigateTo('teacherMessages')">
-        <div class="course-list-item-title">💬 Сообщения</div>
+      <li class="course-list-item ${state.currentView === "teacherAllAssignments" ? "active" : ""}"
+          onclick="navigateTo('teacherAllAssignments')">
+        <div class="course-list-item-title">📝 Задания ${pendingCount > 0 ? `<span style="color:var(--color-warning);">(${pendingCount})</span>` : ""}</div>
       </li>
     `;
   } else if (state.role === "admin") {

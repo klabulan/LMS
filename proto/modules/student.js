@@ -157,6 +157,12 @@ function renderStudentCoursePage(courseInstanceId, enrollmentId) {
   // Find next assignment to continue
   const nextAssignment = Data.getNextAssignment(enrollmentId);
 
+  // Calculate progress by activity type (U18)
+  const progressByType = calculateProgressByActivityType(assignments, assignmentInstances);
+
+  // Calculate progress by module (U17)
+  const progressByModule = calculateProgressByModule(assignments, assignmentInstances);
+
   return `
     ${renderBreadcrumbs([
       { label: "Моя панель", onClick: "navigateTo('studentDashboard')" },
@@ -177,6 +183,77 @@ function renderStudentCoursePage(courseInstanceId, enrollmentId) {
               Продолжить обучение
             </button>
           ` : ''}
+        </div>
+
+        <!-- U19: What's Next Indicator -->
+        ${nextAssignment ? `
+          <div style="margin: 12px 0; padding: 12px 16px; background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%); border-radius: 10px; border: 1px solid #bfdbfe;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="font-size: 24px;">🎯</div>
+              <div style="flex: 1;">
+                <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 2px;">Следующий шаг</div>
+                <div style="font-weight: 600; font-size: 14px; color: #1e40af;">${nextAssignment.title}</div>
+                <div style="font-size: 12px; color: #6b7280; margin-top: 2px;">${Data.formatAssignmentType(nextAssignment.type)} • ${nextAssignment.maxScore} баллов</div>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="navigateTo('studentAssignment', '${courseInstanceId}', '${enrollmentId}', '${nextAssignment.id}')">
+                Перейти →
+              </button>
+            </div>
+          </div>
+        ` : `
+          <div style="margin: 12px 0; padding: 12px 16px; background: #f0fdf4; border-radius: 10px; border: 1px solid #86efac;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="font-size: 24px;">🎉</div>
+              <div>
+                <div style="font-weight: 600; font-size: 14px; color: #166534;">Курс завершён!</div>
+                <div style="font-size: 12px; color: #6b7280;">Все задания выполнены</div>
+              </div>
+            </div>
+          </div>
+        `}
+
+        <!-- U18: Progress by Activity Type -->
+        <div style="margin: 16px 0; padding: 16px; background: #f9fafb; border-radius: 10px; border: 1px solid var(--color-border);">
+          <div style="font-weight: 600; font-size: 13px; margin-bottom: 12px;">📊 Прогресс по типам заданий</div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;">
+            ${progressByType.map(item => `
+              <div style="text-align: center; padding: 12px; background: #fff; border-radius: 8px; border: 1px solid var(--color-border);">
+                <div style="font-size: 20px; margin-bottom: 4px;">${item.icon}</div>
+                <div style="font-size: 11px; color: #6b7280; margin-bottom: 4px;">${item.label}</div>
+                <div style="font-weight: 600; font-size: 14px; color: ${item.completed === item.total ? '#16a34a' : '#1f2937'};">
+                  ${item.completed}/${item.total}
+                </div>
+                <div class="progress-bar" style="margin-top: 6px; height: 4px;">
+                  <div class="progress-bar-fill" style="width: ${item.total > 0 ? (item.completed / item.total * 100) : 0}%; background: ${item.completed === item.total ? '#16a34a' : 'var(--color-primary)'};"></div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- U17: Progress by Module -->
+        <div style="margin: 16px 0; padding: 16px; background: #f9fafb; border-radius: 10px; border: 1px solid var(--color-border);">
+          <div style="font-weight: 600; font-size: 13px; margin-bottom: 12px;">📚 Прогресс по модулям</div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            ${progressByModule.map((module, idx) => `
+              <div style="padding: 10px 12px; background: #fff; border-radius: 8px; border: 1px solid ${module.completed === module.total ? '#86efac' : 'var(--color-border)'};">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="width: 24px; height: 24px; background: ${module.completed === module.total ? '#dcfce7' : '#e5e7eb'}; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: ${module.completed === module.total ? '#166534' : '#6b7280'};">
+                      ${module.completed === module.total ? '✓' : idx + 1}
+                    </span>
+                    <span style="font-weight: 500; font-size: 13px;">${module.name}</span>
+                  </div>
+                  <span style="font-size: 12px; font-weight: 500; color: ${module.completed === module.total ? '#16a34a' : '#6b7280'};">
+                    ${module.completed}/${module.total} заданий
+                  </span>
+                </div>
+                <div class="progress-bar" style="height: 4px;">
+                  <div class="progress-bar-fill" style="width: ${module.total > 0 ? (module.completed / module.total * 100) : 0}%; background: ${module.completed === module.total ? '#16a34a' : 'var(--color-primary)'};"></div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
         </div>
 
         <div class="field-label">Преподаватель</div>
@@ -741,4 +818,112 @@ function sendMessage(dialogId) {
 
   alert("Сообщение отправлено! (демо)");
   closeModal();
+}
+
+// ============================================================================
+// HELPER FUNCTIONS FOR PROGRESS TRACKING (U17, U18)
+// ============================================================================
+
+/**
+ * U18: Calculate progress by activity type
+ * Groups assignments by type and counts completed vs total
+ */
+function calculateProgressByActivityType(assignments, assignmentInstances) {
+  const types = {
+    'lecture': { icon: '📖', label: 'Лекции', completed: 0, total: 0 },
+    'practice': { icon: '💻', label: 'Практика', completed: 0, total: 0 },
+    'test': { icon: '📝', label: 'Тесты', completed: 0, total: 0 },
+    'project': { icon: '🎯', label: 'Проекты', completed: 0, total: 0 }
+  };
+
+  assignments.forEach(assignment => {
+    const type = assignment.type || 'practice';
+    if (!types[type]) {
+      types[type] = { icon: '📋', label: Data.formatAssignmentType(type), completed: 0, total: 0 };
+    }
+    types[type].total++;
+
+    const instance = assignmentInstances.find(ai => ai.assignmentTemplateId === assignment.id);
+    if (instance && instance.status === 'accepted') {
+      types[type].completed++;
+    }
+  });
+
+  // Filter out types with 0 total and convert to array
+  return Object.values(types).filter(t => t.total > 0);
+}
+
+/**
+ * U17: Calculate progress by module
+ * Groups assignments into logical modules based on order ranges
+ */
+function calculateProgressByModule(assignments, assignmentInstances) {
+  // Group assignments into modules (every 3-4 assignments = 1 module, or by type patterns)
+  const modules = [];
+  const sortedAssignments = [...assignments].sort((a, b) => a.order - b.order);
+
+  // Try to detect modules by looking at assignment titles for "Модуль" or "Раздел"
+  // or group by patterns in order numbers
+  let currentModule = null;
+
+  sortedAssignments.forEach((assignment, idx) => {
+    // Check if title contains module indicator
+    const moduleMatch = assignment.title.match(/^(Модуль|Раздел|Тема|Глава|Урок)\s*(\d+)/i);
+
+    if (moduleMatch) {
+      // Found explicit module marker
+      const moduleName = `${moduleMatch[1]} ${moduleMatch[2]}`;
+      currentModule = modules.find(m => m.name === moduleName);
+      if (!currentModule) {
+        currentModule = { name: moduleName, assignments: [], completed: 0, total: 0 };
+        modules.push(currentModule);
+      }
+    } else if (!currentModule || currentModule.assignments.length >= 4) {
+      // Create new module every 4 assignments if no explicit markers
+      const moduleNum = modules.length + 1;
+      currentModule = { name: `Модуль ${moduleNum}`, assignments: [], completed: 0, total: 0 };
+      modules.push(currentModule);
+    }
+
+    currentModule.assignments.push(assignment);
+    currentModule.total++;
+
+    const instance = assignmentInstances.find(ai => ai.assignmentTemplateId === assignment.id);
+    if (instance && instance.status === 'accepted') {
+      currentModule.completed++;
+    }
+  });
+
+  // If only one module, split more granularly by type
+  if (modules.length === 1 && assignments.length > 3) {
+    modules.length = 0;
+    const introModule = { name: 'Введение', assignments: [], completed: 0, total: 0 };
+    const mainModule = { name: 'Основной материал', assignments: [], completed: 0, total: 0 };
+    const practiceModule = { name: 'Практические задания', assignments: [], completed: 0, total: 0 };
+
+    sortedAssignments.forEach(assignment => {
+      const instance = assignmentInstances.find(ai => ai.assignmentTemplateId === assignment.id);
+      const isCompleted = instance && instance.status === 'accepted';
+
+      if (assignment.type === 'lecture' || assignment.order <= 2) {
+        introModule.assignments.push(assignment);
+        introModule.total++;
+        if (isCompleted) introModule.completed++;
+      } else if (assignment.type === 'practice' || assignment.type === 'project') {
+        practiceModule.assignments.push(assignment);
+        practiceModule.total++;
+        if (isCompleted) practiceModule.completed++;
+      } else {
+        mainModule.assignments.push(assignment);
+        mainModule.total++;
+        if (isCompleted) mainModule.completed++;
+      }
+    });
+
+    if (introModule.total > 0) modules.push(introModule);
+    if (mainModule.total > 0) modules.push(mainModule);
+    if (practiceModule.total > 0) modules.push(practiceModule);
+  }
+
+  return modules;
 }

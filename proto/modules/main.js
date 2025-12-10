@@ -58,8 +58,17 @@ function renderMain() {
   else if (state.role === "teacher") {
     if (state.currentView === "teacherDashboard") {
       content = renderTeacherDashboard();
+    } else if (state.currentView === "teacherCourses") {
+      content = renderTeacherCourses();
+    } else if (state.currentView === "teacherCourseDetail") {
+      content = renderTeacherCourseDetail(state.currentCourseId);
+    } else if (state.currentView === "teacherAllAssignments") {
+      content = renderTeacherAllAssignments();
     } else if (state.currentView === "gradebook") {
-      content = renderGradebook(state.currentCourseId);
+      // Legacy support - redirect to course detail
+      content = renderTeacherCourseDetail(state.currentCourseId);
+    } else {
+      content = renderTeacherDashboard();
     }
   }
   // Admin views

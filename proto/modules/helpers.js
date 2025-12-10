@@ -29,7 +29,7 @@ function renderBreadcrumbs(items) {
   `;
 }
 
-function openModal(title, content, actions = []) {
+function openModal(title, content, actions = [], size = 'default') {
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay";
   overlay.id = "modal-overlay";
@@ -49,8 +49,15 @@ function openModal(title, content, actions = []) {
     `;
   }
 
+  // Size classes
+  const sizeStyles = {
+    'default': 'max-width: 500px;',
+    'large': 'max-width: 700px;',
+    'xlarge': 'max-width: 900px;'
+  };
+
   overlay.innerHTML = `
-    <div class="modal">
+    <div class="modal" style="${sizeStyles[size] || sizeStyles['default']}">
       <div class="modal-header">
         <div class="modal-title">${title}</div>
         <button class="modal-close" onclick="closeModal()">×</button>
