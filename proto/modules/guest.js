@@ -8,14 +8,14 @@ function renderLandingPage() {
   return `
     <div class="main-header">
       <div>
-        <h1 class="main-title">Платформа B3</h1>
+        <h1 class="main-title">Платформа Б3</h1>
         <div class="main-subtitle">
-          Low-code платформа для создания корпоративных приложений
+          Фреймворк для разработки информационных систем в государственном и бизнес-секторе
         </div>
       </div>
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn btn-primary" onclick="showRegistrationModal()">
-          Начать обучение
+          Регистрация
         </button>
         <button class="btn" onclick="showLoginModal()">
           Войти
@@ -26,33 +26,41 @@ function renderLandingPage() {
     <!-- Что такое B3 -->
     <div style="margin-top:24px; padding:24px; background:linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%); border-radius:14px; border:1px solid #bae6fd;">
       <h2 style="font-size:18px; font-weight:600; margin-bottom:12px; color:#0369a1;">
-        Что такое B3?
+        Что такое Платформа Б3?
       </h2>
       <p style="font-size:14px; line-height:1.7; color:#1e3a5f; margin-bottom:16px;">
-        <strong>B3</strong> — это low-code платформа для создания корпоративных приложений.
-        Вместо написания кода вы проектируете модели данных, настраиваете бизнес-процессы
-        и собираете интерфейсы из готовых компонентов.
+        <strong>Платформа Б3</strong> — это фреймворк для разработки информационных систем в государственном
+        и бизнес-секторе и набор инфраструктурных решений, готовых бизнес-процессов, а также отлаженный
+        процесс их внедрения в организации. Цель такого комплексного подхода — снижение затрат на разработку,
+        внедрение и сопровождение новых информационных сервисов.
       </p>
-      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px;">
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:16px;">
         <div style="display:flex; align-items:flex-start; gap:10px;">
-          <span style="font-size:20px;">📊</span>
+          <span style="font-size:20px;">🚀</span>
           <div>
-            <div style="font-weight:600; font-size:13px; color:#0369a1;">Конструктор данных</div>
-            <div style="font-size:12px; color:#64748b;">Визуальное создание моделей и связей</div>
+            <div style="font-weight:600; font-size:13px; color:#0369a1;">Быстрый запуск</div>
+            <div style="font-size:12px; color:#64748b;">Государственные решения со множеством сущностей в облаке или на сервисах заказчика</div>
           </div>
         </div>
         <div style="display:flex; align-items:flex-start; gap:10px;">
-          <span style="font-size:20px;">⚙️</span>
+          <span style="font-size:20px;">🛡️</span>
           <div>
-            <div style="font-weight:600; font-size:13px; color:#0369a1;">BPMN-процессы</div>
-            <div style="font-size:12px; color:#64748b;">Автоматизация бизнес-логики</div>
+            <div style="font-weight:600; font-size:13px; color:#0369a1;">Сертифицированные модули</div>
+            <div style="font-size:12px; color:#64748b;">Протестированные функциональные модули с сертификацией ФСТЭК и ФСБ</div>
           </div>
         </div>
         <div style="display:flex; align-items:flex-start; gap:10px;">
-          <span style="font-size:20px;">🖥️</span>
+          <span style="font-size:20px;">🇷🇺</span>
           <div>
-            <div style="font-weight:600; font-size:13px; color:#0369a1;">Дашборды</div>
-            <div style="font-size:12px; color:#64748b;">Готовые UI-компоненты</div>
+            <div style="font-weight:600; font-size:13px; color:#0369a1;">Отечественное ПО</div>
+            <div style="font-size:12px; color:#64748b;">Полностью базируется на открытом или отечественном программном обеспечении</div>
+          </div>
+        </div>
+        <div style="display:flex; align-items:flex-start; gap:10px;">
+          <span style="font-size:20px;">🔗</span>
+          <div>
+            <div style="font-weight:600; font-size:13px; color:#0369a1;">Интеграция</div>
+            <div style="font-size:12px; color:#64748b;">Быстрая интеграция с федеральными ИС и системами электронного документооборота</div>
           </div>
         </div>
       </div>
@@ -80,7 +88,11 @@ function renderLandingPage() {
         </div>
         <div style="display:flex; align-items:center; gap:8px; padding:8px 12px; background:#f8fafc; border-radius:8px;">
           <span style="width:24px; height:24px; background:#0ea5e9; color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600;">3</span>
-          <span style="font-size:13px; color:#374151;">Практикуйтесь на стенде</span>
+          <span style="font-size:13px; color:#374151;">Получите доступ к учебным материалам</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; padding:8px 12px; background:#f8fafc; border-radius:8px;">
+          <span style="width:24px; height:24px; background:#0ea5e9; color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600;">4</span>
+          <span style="font-size:13px; color:#374151;">Практикуйтесь на учебном стенде</span>
         </div>
         <div style="display:flex; align-items:center; gap:8px; padding:8px 12px; background:#f8fafc; border-radius:8px;">
           <span style="width:24px; height:24px; background:#10b981; color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600;">✓</span>
@@ -328,11 +340,8 @@ function renderCourseDetailPage(courseTemplateId) {
       <div class="field-label">Предварительные требования</div>
       <div class="field-value">${course.prerequisites}</div>
 
-      <div class="field-label">Порог сертификации</div>
-      <div class="field-value">${course.certificateThreshold}% от общей оценки</div>
-
       ${course.requiresSandbox ? `
-        <div class="field-label">Лабораторный стенд</div>
+        <div class="field-label">Учебный стенд</div>
         <div class="field-value">
           <span class="tag" style="background:#dcfce7; color:#166534; border-color:#22c55e;">
             Предоставляется
@@ -358,15 +367,9 @@ function renderCourseDetailPage(courseTemplateId) {
                 </div>
                 <div style="font-size:12px; color:#6b7280; margin-top:2px;">
                   ${Data.formatAssignmentType(assignment.type)} •
-                  ${assignment.maxScore} баллов •
                   ${assignment.dueDays} дней
                 </div>
               </div>
-              ${assignment.isMandatory ? `
-                <span class="tag" style="background:#fef3c7; color:#92400e; border-color:#fbbf24;">
-                  Обязательно
-                </span>
-              ` : ""}
             </div>
             <div style="font-size:12px; color:#6b7280; margin-top:6px; line-height:1.5;">
               ${assignment.description}
