@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Check Planned Courses</title>
+</head>
+<body>
+    <h1>Проверка запланированных курсов</h1>
+    <div id="output"></div>
+
+    <script src="data.js"></script>
+    <script>
+        const planned = LMSData.courseInstances.filter(ci => ci.status === 'planned');
+        let html = `<h2>Найдено запланированных курсов: ${planned.length}</h2>`;
+
+        planned.forEach(ci => {
+            const enrollments = LMSData.enrollments.filter(e => e.courseInstanceId === ci.id);
+            const approved = enrollments.filter(e => e.status === 'approved').length;
+            const pending = enrollments.filter(e => e.status === 'pending_approval').length;
+            const template = LMSData.getCourseTemplate(ci.courseTemplateId);
+
+            html += `
+                <div style="margin: 20px 0; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
+                    <h3>${ci.cohort} (${ci.id})</h3>
+                    <p><strong>Курс:</strong> ${template.title}</p>
+                    <p><strong>Даты:</strong> ${ci.startDate} - ${ci.endDate}</p>
+                    <p><strong>Студентов одобрено:</strong> ${approved}</p>
+                    <p><strong>Заявок на рассмотрении:</strong> ${pending}</p>
+                    <p><strong>Всего записей:</strong> ${enrollments.length}</p>
+                </div>
+            `;
+        });
+
+        document.getElementById('output').innerHTML = html;
+        console.log('Запланированные курсы:', planned);
+    </script>
+</body>
+</html>

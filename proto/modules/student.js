@@ -414,7 +414,39 @@ function renderStudentAssignmentPage(courseInstanceId, enrollmentId, assignmentT
         </div>
 
         <div class="field-label">Описание задания</div>
-        <div class="field-value">${assignment.description}</div>
+        <div class="field-value">${assignment.short_description || assignment.description}</div>
+
+        ${assignment.detailed_instruction ? `
+          <div class="field-label" style="margin-top:20px;">Подробная инструкция</div>
+          <div class="field-value" style="line-height:1.6;">
+            ${assignment.detailed_instruction}
+          </div>
+        ` : ''}
+
+        ${assignment.instruction_videos && assignment.instruction_videos.length > 0 ? `
+          <div class="field-label" style="margin-top:20px;">Видео для просмотра</div>
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            ${assignment.instruction_videos.map(url => `
+              <div style="position:relative; padding-bottom:56.25%; height:0; overflow:hidden; max-width:100%; border-radius:8px;">
+                <iframe src="${url}"
+                        style="position:absolute; top:0; left:0; width:100%; height:100%; border:none;"
+                        allowfullscreen>
+                </iframe>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+
+        ${assignment.instruction_files && assignment.instruction_files.length > 0 ? `
+          <div class="field-label" style="margin-top:20px;">Файлы инструкции</div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            ${assignment.instruction_files.map(file => `
+              <a href="${file.url}" download style="font-size:13px; color:#2563eb; text-decoration:none; display:flex; align-items:center; gap:8px;">
+                📎 ${file.name}
+              </a>
+            `).join('')}
+          </div>
+        ` : ''}
 
         ${assignment.materials.length > 0 ? `
           <div class="field-label">Материалы</div>
@@ -484,12 +516,12 @@ function renderStudentAssignmentPage(courseInstanceId, enrollmentId, assignmentT
           <div style="margin-top:20px; padding:16px; background:#f9fafb; border-radius:10px;">
             <div style="font-weight:500; margin-bottom:12px;">Отправить работу</div>
 
-            ${assignment.submissionType.includes("text") ? `
+            ${assignment.submissionType && assignment.submissionType.includes("text") ? `
               <div class="field-label">Текст работы</div>
               <textarea id="submission-text" class="textarea" placeholder="Введите описание выполненной работы"></textarea>
             ` : ""}
 
-            ${assignment.submissionType.includes("file") ? `
+            ${assignment.submissionType && assignment.submissionType.includes("file") ? `
               <div class="field-label">Файлы</div>
               <div class="file-upload-zone" onclick="alert('Загрузка файлов (демо)')">
                 <div class="file-upload-zone-icon">📁</div>
@@ -497,7 +529,7 @@ function renderStudentAssignmentPage(courseInstanceId, enrollmentId, assignmentT
               </div>
             ` : ""}
 
-            ${assignment.submissionType.includes("link") ? `
+            ${assignment.submissionType && assignment.submissionType.includes("link") ? `
               <div class="field-label">Ссылка на работу</div>
               <input type="text"
                      id="submission-url"

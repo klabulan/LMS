@@ -52,6 +52,9 @@ function renderMain() {
       content = renderMethodistDashboard();
     } else if (state.currentView === "templateEditor") {
       content = renderTemplateEditor();
+    } else if (state.currentView === "teacherCourseDetail") {
+      // Methodist can view course instances using teacher's detail view
+      content = renderTeacherCourseDetail(state.currentCourseId);
     }
   }
   // Teacher views

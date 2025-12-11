@@ -380,10 +380,13 @@
 | `module_number` | Integer | Да | Номер модуля |
 | `order_number` | Integer | Да | Порядковый номер в курсе |
 | `title` | String(255) | Да | Название задания |
-| `description` | Text | Да | Описание задания |
+| `short_description` | Text | Да | Краткое описание (для предпросмотра в карточках) |
+| `detailed_instruction` | Text | Да | Подробная инструкция (с HTML-форматированием) |
+| `instruction_videos` | JSON | Нет | Массив ссылок на обучающие видео (YouTube, Vimeo и т.д.) |
+| `instruction_files` | JSON | Нет | Массив файлов инструкции для скачивания (название, URL) |
 | `type` | Enum | Да | `lecture` / `lab` / `quiz` / `project` / `peer_review` |
 | `delivery_mode` | Enum | Да | `in_person` / `self_study` |
-| `submission_type` | Array/JSON | Нет | Массив типов: `text`, `file`, `url`, `none` |
+| `submission_type` | Array/JSON | Нет | Массив типов: `text`, `file`, `url`, `none` (скрыто из UI, используется внутренне) |
 | `max_score` | Decimal(5,2) | Да | Максимальный балл |
 | `is_mandatory` | Boolean | Да | Обязательное для сертификации |
 | `materials` | JSON | Нет | Массив ссылок на файлы/URL (лекции, инструкции) |
@@ -685,7 +688,7 @@
 | `id` | UUID | Да | Уникальный идентификатор |
 | `assignment_template_id` | UUID (FK) | Да | Шаблон задания |
 | `duration_days` | Integer | Да | Длительность задания (дней на выполнение) |
-| `start_condition` | Enum | Да | Условие старта: `course_start` / `prev_complete` / `manual` |
+| `start_condition` | Enum | Да | Условие старта: `course_start` / `prev_complete` / `prev_assignment_submitted` / `manual` |
 | `start_offset_days` | Integer | Нет | Дней отсрочки от условия (по умолчанию 0) |
 
 **Связи:**
@@ -694,6 +697,7 @@
 **Типы условий старта (`start_condition`):**
 - `course_start`: Задание доступно от старта курса + `start_offset_days`
 - `prev_complete`: Задание открывается после выполнения предыдущего задания + `start_offset_days`
+- `prev_assignment_submitted`: Задание открывается после сдачи предыдущего задания на проверку (не дожидаясь оценки) + `start_offset_days`
 - `manual`: Задание открывается вручную преподавателем (даты игнорируются)
 
 **Вычисление дат для учебной группы:**
@@ -708,6 +712,11 @@
 Если start_condition = prev_complete:
   start_date = prev_assignment.end_date + start_offset_days
   end_date = start_date + duration_days
+
+Если start_condition = prev_assignment_submitted:
+  start_date = prev_assignment.submitted_at + start_offset_days (динамически)
+  end_date = start_date + duration_days
+  Примечание: Дата открывается индивидуально для каждого студента при отправке предыдущего задания
 
 Если start_condition = manual:
   start_date = NULL (устанавливается преподавателем)
@@ -752,7 +761,7 @@
 - Многие-к-одному: Launch Schedule → Course Template
 
 **Режимы запуска:**
-- `manual`: Группы создаются вручную методистом/администратором
+- `manual`: Группы создаются вручную
 - `periodic`: Автоматический запуск с заданной периодичностью
 - `dates`: Запуск в конкретные запланированные даты
 

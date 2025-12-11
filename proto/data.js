@@ -140,6 +140,31 @@ LMSData.assignmentTemplates = [
     deliveryMode: "in_person",  // Очное занятие
     module: "Введение",
     order: 1,
+    short_description: "Ознакомьтесь с учебным порталом и получите доступ к стенду",
+    detailed_instruction: `<h3>Цели задания</h3>
+      <p>В этом задании вы:</p>
+      <ul>
+        <li>Познакомитесь с учебным порталом B3 LMS</li>
+        <li>Заполните информацию о себе в профиле</li>
+        <li>Получите доступ к лабораторному стенду</li>
+        <li>Проверите, что доступ работает корректно</li>
+      </ul>
+      <h3>Шаги выполнения</h3>
+      <ol>
+        <li>Войдите в систему под своими учетными данными</li>
+        <li>Перейдите в раздел "Профиль" и заполните все обязательные поля</li>
+        <li>Найдите в личном кабинете раздел "Выделенные ресурсы"</li>
+        <li>Используйте указанные учетные данные для входа на стенд</li>
+        <li>Убедитесь, что вход выполнен успешно</li>
+        <li>Опишите в отчете результаты выполнения</li>
+      </ol>`,
+    instruction_videos: [
+      "https://www.youtube.com/embed/dQw4w9WgXcQ"
+    ],
+    instruction_files: [
+      { name: "Руководство_пользователя.pdf", url: "#guide.pdf" },
+      { name: "Инструкция_по_доступу.docx", url: "#access-guide.docx" }
+    ],
     description: "Ознакомьтесь с учебным порталом, заполните свой профиль и получите доступ к лабораторному стенду.",
     materials: [
       { type: "video", title: "Обзор портала", url: "#video-intro" },
@@ -161,6 +186,30 @@ LMSData.assignmentTemplates = [
     deliveryMode: "self_study",  // Самостоятельное
     module: "Основы объектной модели",
     order: 2,
+    short_description: "Создайте справочник «Курс» с полями и настройте форму просмотра",
+    detailed_instruction: `<h3>Цели задания</h3>
+      <p>Научиться создавать справочники в B3 и настраивать их интерфейс.</p>
+      <h3>Требования к выполнению</h3>
+      <ol>
+        <li>Создайте новый справочник с именем "Курс"</li>
+        <li>Добавьте поля: Код (строка, обязательное), Название (строка, обязательное), Тип (перечисление), Преподаватель (ссылка на Пользователя)</li>
+        <li>Настройте форму просмотра: расположите поля в логичном порядке</li>
+        <li>Настройте список: добавьте колонки для всех ключевых полей</li>
+        <li>Проверьте работу: создайте 2-3 тестовых записи</li>
+      </ol>
+      <h3>Критерии оценки</h3>
+      <ul>
+        <li>Структура справочника соответствует требованиям (40 баллов)</li>
+        <li>Форма просмотра настроена корректно (30 баллов)</li>
+        <li>Список настроен и удобен для просмотра (30 баллов)</li>
+      </ul>`,
+    instruction_videos: [
+      "https://www.youtube.com/embed/dQw4w9WgXcQ"
+    ],
+    instruction_files: [
+      { name: "Методичка_справочники.pdf", url: "#doc-objects" },
+      { name: "Примеры_структур.xlsx", url: "#examples.xlsx" }
+    ],
     description: "Создайте в B3 справочник «Курс» с полями: Код, Название, Тип, Преподаватель. Настройте форму просмотра и списка.",
     materials: [
       { type: "doc", title: "Методичка по справочникам", url: "#doc-objects" },
@@ -171,7 +220,7 @@ LMSData.assignmentTemplates = [
     isMandatory: true,
     submissionType: ["text", "file", "link"],
     autoGrade: false,
-    startCondition: "prev_complete",
+    startCondition: "prev_assignment_submitted",
     startOffset: 0
   },
   {
@@ -182,6 +231,29 @@ LMSData.assignmentTemplates = [
     deliveryMode: "in_person",  // Очное занятие с преподавателем
     module: "Процессы и автоматизация",
     order: 3,
+    short_description: "Постройте BPMN-процесс обработки заявок на курс",
+    detailed_instruction: `<h3>Описание задания</h3>
+      <p>Вам необходимо создать бизнес-процесс для автоматизации обработки заявок на курс.</p>
+      <h3>Этапы процесса</h3>
+      <ol>
+        <li><strong>Старт</strong>: Студент подает заявку на курс</li>
+        <li><strong>Проверка</strong>: Администратор проверяет заявку</li>
+        <li><strong>Решение</strong>: Одобрение или отклонение заявки</li>
+        <li><strong>Уведомление</strong>: Отправка email студенту о результате</li>
+        <li><strong>Завершение</strong>: Закрытие процесса</li>
+      </ol>
+      <h3>Требования</h3>
+      <ul>
+        <li>Использовать BPMN 2.0 нотацию</li>
+        <li>Настроить таймеры (если админ не проверил за 24 часа - эскалация)</li>
+        <li>Добавить обработку ошибок (если email не отправился)</li>
+        <li>Протестировать процесс на тестовых данных</li>
+      </ul>`,
+    instruction_videos: [],
+    instruction_files: [
+      { name: "BPMN_основы.pdf", url: "#doc-bpmn" },
+      { name: "Шаблон_процесса.bpmn", url: "#template-bpmn" }
+    ],
     description: "Постройте BPMN-процесс обработки заявок на курс: старт → проверка админом → одобрение/отклонение → уведомление.",
     materials: [
       { type: "doc", title: "Основы BPMN в B3", url: "#doc-bpmn" }
@@ -202,6 +274,26 @@ LMSData.assignmentTemplates = [
     deliveryMode: "self_study",
     module: "Пользовательские интерфейсы",
     order: 4,
+    short_description: "Создайте форму редактирования с валидацией и вычисляемыми полями",
+    detailed_instruction: `<h3>Задача</h3>
+      <p>Доработайте справочник «Курс» из предыдущего задания: добавьте форму редактирования с продвинутыми возможностями.</p>
+      <h3>Требования</h3>
+      <ol>
+        <li>Создайте форму редактирования с удобным расположением полей</li>
+        <li>Добавьте валидацию:
+          <ul>
+            <li>Код курса должен быть уникальным</li>
+            <li>Название не короче 5 символов</li>
+            <li>Преподаватель обязателен</li>
+          </ul>
+        </li>
+        <li>Добавьте вычисляемое поле "Полное название" = Код + " - " + Название</li>
+        <li>Настройте условное отображение: если Тип = "Продвинутый", показать поле "Предварительные требования"</li>
+      </ol>`,
+    instruction_videos: [
+      "https://www.youtube.com/embed/dQw4w9WgXcQ"
+    ],
+    instruction_files: [],
     description: "Создайте форму редактирования справочника с валидацией полей и вычисляемыми значениями.",
     materials: [],
     maxScore: 100,
@@ -209,7 +301,7 @@ LMSData.assignmentTemplates = [
     isMandatory: false,
     submissionType: ["file", "link"],
     autoGrade: false,
-    startCondition: "prev_complete",
+    startCondition: "manual",
     startOffset: 0
   },
   // Advanced course assignments
@@ -221,6 +313,27 @@ LMSData.assignmentTemplates = [
     deliveryMode: "self_study",
     module: "Интеграции",
     order: 1,
+    short_description: "Настройте интеграцию через RESTQL с обработкой ошибок",
+    detailed_instruction: `<h3>Цель задания</h3>
+      <p>Научиться работать с внешними API через RESTQL и обрабатывать ошибки интеграции.</p>
+      <h3>Задание</h3>
+      <ol>
+        <li>Создайте RESTQL-запрос к тестовому API (https://jsonplaceholder.typicode.com/users)</li>
+        <li>Получите список пользователей и сохраните их в справочник B3</li>
+        <li>Реализуйте обработку ошибок:
+          <ul>
+            <li>Таймаут соединения</li>
+            <li>Ошибки сети</li>
+            <li>Невалидные данные в ответе</li>
+          </ul>
+        </li>
+        <li>Добавьте логирование всех запросов</li>
+        <li>Напишите тесты для проверки работы интеграции</li>
+      </ol>`,
+    instruction_videos: [],
+    instruction_files: [
+      { name: "RESTQL_документация.pdf", url: "#restql-docs" }
+    ],
     description: "Настройте интеграцию с внешней системой через RESTQL. Реализуйте получение данных и обработку ошибок.",
     materials: [
       { type: "doc", title: "RESTQL API Reference", url: "#restql-docs" }
@@ -241,6 +354,30 @@ LMSData.assignmentTemplates = [
     deliveryMode: "self_study",
     module: "Аналитика и отчёты",
     order: 2,
+    short_description: "Создайте аналитическую панель с графиками и фильтрами",
+    detailed_instruction: `<h3>Задача проекта</h3>
+      <p>Создать полнофункциональный дашборд для преподавателя, отображающий прогресс всех студентов курса.</p>
+      <h3>Требования к дашборду</h3>
+      <ol>
+        <li><strong>Общая статистика</strong>: количество студентов, средний прогресс, количество на проверке</li>
+        <li><strong>График прогресса</strong>: линейный график с прогрессом каждого студента по неделям</li>
+        <li><strong>Матрица успеваемости</strong>: таблица студенты × задания с цветовой индикацией</li>
+        <li><strong>Фильтры</strong>: по статусу (отстающие/в норме/опережающие), по заданиям, по датам</li>
+        <li><strong>Экспорт</strong>: возможность выгрузить данные в Excel</li>
+      </ol>
+      <h3>Оценивание</h3>
+      <ul>
+        <li>Корректность данных (30 баллов)</li>
+        <li>Визуализация (30 баллов)</li>
+        <li>Функциональность фильтров (20 баллов)</li>
+        <li>Удобство использования (20 баллов)</li>
+      </ul>`,
+    instruction_videos: [
+      "https://www.youtube.com/embed/dQw4w9WgXcQ"
+    ],
+    instruction_files: [
+      { name: "Примеры_дашбордов.pdf", url: "#dashboard-examples" }
+    ],
     description: "Создайте аналитическую панель для отображения прогресса студентов с графиками и фильтрами.",
     materials: [],
     maxScore: 100,
@@ -287,6 +424,36 @@ LMSData.courseInstances = [
     endDate: "2026-04-30",
     status: "planned",
     createdAt: "2025-12-05T10:00:00Z"
+  },
+  {
+    id: "ci-basic-march",
+    courseTemplateId: "tpl-basic",
+    teacherId: "teacher-1",
+    cohort: "Группа март 2025",
+    startDate: "2025-03-10",
+    endDate: "2025-05-10",
+    status: "planned",
+    createdAt: "2025-01-20T10:00:00Z"
+  },
+  {
+    id: "ci-basic-april",
+    courseTemplateId: "tpl-basic",
+    teacherId: "teacher-1",
+    cohort: "Группа апрель 2025",
+    startDate: "2025-04-15",
+    endDate: "2025-06-15",
+    status: "planned",
+    createdAt: "2025-02-01T10:00:00Z"
+  },
+  {
+    id: "ci-advanced-may",
+    courseTemplateId: "tpl-advanced",
+    teacherId: "teacher-1",
+    cohort: "Группа май 2025",
+    startDate: "2025-05-20",
+    endDate: "2025-08-20",
+    status: "planned",
+    createdAt: "2025-03-01T10:00:00Z"
   }
 ];
 
@@ -419,6 +586,176 @@ LMSData.enrollments = [
     enrolledAt: "2025-12-10T08:00:00Z",
     completedAt: null,
     lastActivityAt: "2025-12-10T08:00:00Z"
+  },
+  // Enrollments for ci-basic-march (planned group)
+  {
+    id: "enr-march-1",
+    studentId: "student-1",
+    courseInstanceId: "ci-basic-march",
+    status: "approved",
+    requestComment: "Хочу пройти базовый курс в марте",
+    approvedBy: "admin-1",
+    approvedAt: "2025-01-22T10:00:00Z",
+    approvalComment: "Одобрено. Группа март 2025",
+    progress: 0,
+    totalScore: 0,
+    allocatedResources: "Учебный стенд B3\nURL: https://sandbox.b3.example.com/instance-march-001\nЛогин: student001_march\nПароль: MarchPass_2025_Abc!\nДействует до: 10.05.2025",
+    enrolledAt: "2025-01-21T14:00:00Z",
+    completedAt: null,
+    lastActivityAt: "2025-01-22T10:00:00Z"
+  },
+  {
+    id: "enr-march-2",
+    studentId: "student-2",
+    courseInstanceId: "ci-basic-march",
+    status: "approved",
+    requestComment: "Планирую начать обучение в марте",
+    approvedBy: "admin-1",
+    approvedAt: "2025-01-23T11:30:00Z",
+    approvalComment: "Одобрено",
+    progress: 0,
+    totalScore: 0,
+    allocatedResources: "Учебный стенд B3\nURL: https://sandbox.b3.example.com/instance-march-002\nЛогин: student002_march\nПароль: MarchPass_2025_Xyz!\nДействует до: 10.05.2025",
+    enrolledAt: "2025-01-22T16:00:00Z",
+    completedAt: null,
+    lastActivityAt: "2025-01-23T11:30:00Z"
+  },
+  {
+    id: "enr-march-3",
+    studentId: "student-3",
+    courseInstanceId: "ci-basic-march",
+    status: "approved",
+    requestComment: "Готов к обучению в марте",
+    approvedBy: "admin-1",
+    approvedAt: "2025-01-24T09:00:00Z",
+    approvalComment: "Одобрено. Добро пожаловать в группу!",
+    progress: 0,
+    totalScore: 0,
+    allocatedResources: "Учебный стенд B3\nURL: https://sandbox.b3.example.com/instance-march-003\nЛогин: student003_march\nПароль: MarchPass_2025_Def!\nДействует до: 10.05.2025",
+    enrolledAt: "2025-01-23T10:00:00Z",
+    completedAt: null,
+    lastActivityAt: "2025-01-24T09:00:00Z"
+  },
+  // Enrollments for ci-basic-april (planned group)
+  {
+    id: "enr-april-1",
+    studentId: "student-1",
+    courseInstanceId: "ci-basic-april",
+    status: "approved",
+    requestComment: "Записываюсь на апрельскую группу базового курса",
+    approvedBy: "teacher-1",
+    approvedAt: "2025-02-03T14:00:00Z",
+    approvalComment: "Заявка одобрена преподавателем",
+    progress: 0,
+    totalScore: 0,
+    allocatedResources: "Учебный стенд B3\nURL: https://sandbox.b3.example.com/instance-april-001\nЛогин: student001_april\nПароль: AprilPass_2025_Abc!\nДействует до: 15.06.2025",
+    enrolledAt: "2025-02-02T11:00:00Z",
+    completedAt: null,
+    lastActivityAt: "2025-02-03T14:00:00Z"
+  },
+  {
+    id: "enr-april-2",
+    studentId: "student-2",
+    courseInstanceId: "ci-basic-april",
+    status: "approved",
+    requestComment: "Хочу пройти курс в апреле",
+    approvedBy: "admin-1",
+    approvedAt: "2025-02-05T10:30:00Z",
+    approvalComment: "Одобрено администратором",
+    progress: 0,
+    totalScore: 0,
+    allocatedResources: "Учебный стенд B3\nURL: https://sandbox.b3.example.com/instance-april-002\nЛогин: student002_april\nПароль: AprilPass_2025_Xyz!\nДействует до: 15.06.2025",
+    enrolledAt: "2025-02-04T15:00:00Z",
+    completedAt: null,
+    lastActivityAt: "2025-02-05T10:30:00Z"
+  },
+  {
+    id: "enr-april-3",
+    studentId: "student-3",
+    courseInstanceId: "ci-basic-april",
+    status: "approved",
+    requestComment: "Готов к обучению",
+    approvedBy: "teacher-1",
+    approvedAt: "2025-02-06T09:00:00Z",
+    approvalComment: "Добро пожаловать!",
+    progress: 0,
+    totalScore: 0,
+    allocatedResources: "Учебный стенд B3\nURL: https://sandbox.b3.example.com/instance-april-003\nЛогин: student003_april\nПароль: AprilPass_2025_Qwe!\nДействует до: 15.06.2025",
+    enrolledAt: "2025-02-05T12:00:00Z",
+    completedAt: null,
+    lastActivityAt: "2025-02-06T09:00:00Z"
+  },
+  {
+    id: "enr-april-4",
+    studentId: "student-1",
+    courseInstanceId: "ci-basic-april",
+    status: "pending_approval",
+    requestComment: "Дополнительная заявка для апрельской группы",
+    progress: 0,
+    totalScore: 0,
+    allocatedResources: null,
+    enrolledAt: "2025-02-08T10:00:00Z",
+    completedAt: null,
+    lastActivityAt: "2025-02-08T10:00:00Z"
+  },
+  // Enrollments for ci-advanced-may (planned group)
+  {
+    id: "enr-may-1",
+    studentId: "student-1",
+    courseInstanceId: "ci-advanced-may",
+    status: "approved",
+    requestComment: "Хочу пройти продвинутый курс в мае 2025",
+    approvedBy: "admin-1",
+    approvedAt: "2025-03-03T11:00:00Z",
+    approvalComment: "Одобрено. Опыт работы подтвержден",
+    progress: 0,
+    totalScore: 0,
+    allocatedResources: "Учебный стенд B3\nURL: https://sandbox.b3.example.com/instance-may-001\nЛогин: student001_may\nПароль: MayPass_2025_Adv!\nДействует до: 20.08.2025",
+    enrolledAt: "2025-03-02T14:00:00Z",
+    completedAt: null,
+    lastActivityAt: "2025-03-03T11:00:00Z"
+  },
+  {
+    id: "enr-may-2",
+    studentId: "student-3",
+    courseInstanceId: "ci-advanced-may",
+    status: "approved",
+    requestComment: "Готов к продвинутому курсу в мае",
+    approvedBy: "teacher-1",
+    approvedAt: "2025-03-04T10:00:00Z",
+    approvalComment: "Заявка одобрена преподавателем",
+    progress: 0,
+    totalScore: 0,
+    allocatedResources: "Учебный стенд B3\nURL: https://sandbox.b3.example.com/instance-may-003\nЛогин: student003_may\nПароль: MayPass_2025_Pro!\nДействует до: 20.08.2025",
+    enrolledAt: "2025-03-03T16:00:00Z",
+    completedAt: null,
+    lastActivityAt: "2025-03-04T10:00:00Z"
+  },
+  {
+    id: "enr-may-3",
+    studentId: "student-2",
+    courseInstanceId: "ci-advanced-may",
+    status: "pending_approval",
+    requestComment: "Хочу записаться на продвинутый курс в мае",
+    progress: 0,
+    totalScore: 0,
+    allocatedResources: null,
+    enrolledAt: "2025-03-05T09:00:00Z",
+    completedAt: null,
+    lastActivityAt: "2025-03-05T09:00:00Z"
+  },
+  {
+    id: "enr-may-4",
+    studentId: "student-2",
+    courseInstanceId: "ci-advanced-may",
+    status: "pending_approval",
+    requestComment: "Повторная заявка на май, опыт 8 месяцев",
+    progress: 0,
+    totalScore: 0,
+    allocatedResources: null,
+    enrolledAt: "2025-03-06T11:00:00Z",
+    completedAt: null,
+    lastActivityAt: "2025-03-06T11:00:00Z"
   }
 ];
 

@@ -2,9 +2,11 @@
 // Экраны для преподавателей
 
 // State for course detail view
-let teacherCourseTab = 'students'; // 'students' or 'assignments'
+let teacherCourseTab = 'progress'; // 'progress', 'students' or 'assignments' - default to progress
 let selectedStudentId = null;
 let selectedAssignmentId = null;
+let returnToView = null; // Track where we came from for back navigation
+let gradingViewStudentId = null; // For assignment grading view
 
 // ============================================================================
 // ЛИЧНЫЙ КАБИНЕТ (Dashboard)
@@ -20,7 +22,7 @@ function renderPlannedCoursesSection(user) {
   }
 
   let html = `
-    <h2 style="font-size:14px; font-weight:600; margin-bottom:12px;">Запланированные курсы</h2>
+    <h2 style="font-size:14px; font-weight:600; margin-bottom:12px;">Запланированные группы</h2>
     <div class="cards-grid" style="grid-template-columns: 1fr; margin-bottom:20px;">
   `;
 
@@ -106,12 +108,12 @@ function renderTeacherDashboard() {
     </div>
 
     <div style="display:grid; grid-template-columns: 2fr 1fr; gap:20px; margin-top:16px;">
-      <!-- Левая колонка: статистика и курсы -->
+      <!-- Левая колонка: статистика и группы -->
       <div>
         <!-- Статистика -->
         <div class="cards-grid" style="margin-bottom:20px;">
           <div class="card">
-            <div class="card-title">Активных курсов</div>
+            <div class="card-title">Активных групп</div>
             <div style="font-size:32px; font-weight:600;">${myCourses.filter(c => c.status === 'active').length}</div>
           </div>
           <div class="card">
@@ -124,11 +126,8 @@ function renderTeacherDashboard() {
           </div>
         </div>
 
-        <!-- Запланированные курсы -->
-        ${renderPlannedCoursesSection(user)}
-
-        <!-- Мои курсы -->
-        <h2 style="font-size:14px; font-weight:600; margin-bottom:12px;">Мои курсы</h2>
+        <!-- Мои группы -->
+        <h2 style="font-size:14px; font-weight:600; margin-bottom:12px;">Мои группы</h2>
         <div class="cards-grid" style="grid-template-columns: 1fr;">
           ${myCourses.filter(c => c.status === 'active').slice(0, 3).map(instance => {
             const template = Data.getCourseTemplate(instance.courseTemplateId);
@@ -152,7 +151,7 @@ function renderTeacherDashboard() {
                 </div>
                 <div style="margin-top:8px;">
                   <button class="btn btn-primary btn-sm" onclick="navigateTo('teacherCourseDetail', '${instance.id}')">
-                    Детали курса
+                    Детали группы
                   </button>
                 </div>
               </div>
@@ -161,9 +160,12 @@ function renderTeacherDashboard() {
         </div>
         ${myCourses.length > 3 ? `
           <div style="margin-top:8px;">
-            <button class="btn btn-ghost btn-sm" onclick="navigateTo('teacherCourses')">Все курсы (${myCourses.length})</button>
+            <button class="btn btn-ghost btn-sm" onclick="navigateTo('teacherCourses')">Все группы (${myCourses.length})</button>
           </div>
         ` : ''}
+
+        <!-- Запланированные группы -->
+        ${renderPlannedCoursesSection(user)}
       </div>
 
       <!-- Правая колонка: события и сообщения -->
@@ -205,7 +207,7 @@ function renderTeacherDashboard() {
 }
 
 // ============================================================================
-// СПИСОК КУРСОВ
+// СПИСОК ГРУПП
 // ============================================================================
 
 function renderTeacherCourses() {
@@ -215,13 +217,13 @@ function renderTeacherCourses() {
   return `
     ${renderBreadcrumbs([
       { label: "Личный кабинет", onClick: "navigateTo('teacherDashboard')" },
-      { label: "Курсы" }
+      { label: "Группы" }
     ])}
 
     <div class="main-header">
       <div>
-        <h1 class="main-title">Мои курсы</h1>
-        <div class="main-subtitle">${myCourses.length} курсов</div>
+        <h1 class="main-title">Мои группы</h1>
+        <div class="main-subtitle">${myCourses.length} групп</div>
       </div>
     </div>
 
@@ -246,7 +248,7 @@ function renderTeacherCourses() {
             </div>
             <div style="margin-top:auto; padding-top:12px;">
               <button class="btn btn-primary btn-sm" onclick="navigateTo('teacherCourseDetail', '${instance.id}')">
-                Детали курса
+                Детали группы
               </button>
             </div>
           </div>
@@ -256,7 +258,7 @@ function renderTeacherCourses() {
       ${myCourses.length === 0 ? `
         <div class="card" style="text-align:center; padding:40px; grid-column:1/-1;">
           <div style="font-size:40px; margin-bottom:12px;">📚</div>
-          <div style="font-weight:500; margin-bottom:8px;">У вас пока нет курсов</div>
+          <div style="font-weight:500; margin-bottom:8px;">У вас пока нет групп</div>
         </div>
       ` : ""}
     </div>
@@ -269,11 +271,16 @@ function renderTeacherCourses() {
 
 function renderTeacherCourseDetail(courseInstanceId) {
   const instance = Data.getCourseInstance(courseInstanceId);
-  if (!instance) return '<div class="error">Курс не найден</div>';
+  if (!instance) return '<div class="error">Группа не найдена</div>';
 
   const template = Data.getCourseTemplate(instance.courseTemplateId);
   const enrollments = Data.getEnrollmentsByCourse(courseInstanceId);
   const assignments = Data.getAssignmentTemplatesForCourse(template.id);
+
+  // If grading view is active, show that instead
+  if (gradingViewStudentId && selectedAssignmentId) {
+    return renderAssignmentGradingView(courseInstanceId, selectedAssignmentId, gradingViewStudentId, returnToView);
+  }
 
   let mainContent = '';
 
@@ -288,7 +295,7 @@ function renderTeacherCourseDetail(courseInstanceId) {
   return `
     ${renderBreadcrumbs([
       { label: "Личный кабинет", onClick: "navigateTo('teacherDashboard')" },
-      { label: "Курсы", onClick: "navigateTo('teacherCourses')" },
+      { label: "Группы", onClick: "navigateTo('teacherCourses')" },
       { label: template.title }
     ])}
 
@@ -325,7 +332,6 @@ function renderTeacherCourseDetail(courseInstanceId) {
               onclick="switchTeacherCourseTab('assignments', '${courseInstanceId}')"
               style="cursor:pointer;">
             <div class="assignment-item-title">📝 Задания</div>
-            <div class="assignment-item-meta">${assignments.length} шт.</div>
           </li>
         </ul>
       </div>
@@ -337,6 +343,17 @@ function switchTeacherCourseTab(tab, courseInstanceId) {
   teacherCourseTab = tab;
   selectedStudentId = null;
   selectedAssignmentId = null;
+  gradingViewStudentId = null;
+  navigateTo('teacherCourseDetail', courseInstanceId);
+}
+
+/**
+ * Navigate to assignment grading view
+ */
+function showAssignmentGradingView(courseInstanceId, assignmentId, studentId, returnTo) {
+  selectedAssignmentId = assignmentId;
+  gradingViewStudentId = studentId;
+  returnToView = returnTo;
   navigateTo('teacherCourseDetail', courseInstanceId);
 }
 
@@ -512,8 +529,8 @@ function renderStudentAssignmentsList(courseInstanceId, studentId, assignments) 
                 ` : ''}
                 ${ai?.status === 'submitted' ? `
                   <button class="btn btn-primary btn-sm" style="font-size:11px; padding:4px 8px;"
-                          onclick="showQuickGrade('${courseInstanceId}', '${assignment.id}', '${studentId}')">
-                    Оценить
+                          onclick="showAssignmentGradingView('${courseInstanceId}', '${assignment.id}', '${studentId}', 'studentDetails')">
+                    Перейти
                   </button>
                 ` : ''}
               </div>
@@ -554,7 +571,7 @@ function renderAssignmentsTable(courseInstanceId, enrollments, assignments) {
   if (assignments.length === 0) {
     return `
       <div style="text-align:center; padding:30px; color:#9ca3af;">
-        Нет заданий в курсе
+        Нет заданий в группе
       </div>
     `;
   }
@@ -694,8 +711,8 @@ function renderAssignmentStudentsList(courseInstanceId, assignmentId, enrollment
                 ` : ''}
                 ${ai?.status === 'submitted' ? `
                   <button class="btn btn-primary btn-sm" style="font-size:10px; padding:3px 6px;"
-                          onclick="showQuickGrade('${courseInstanceId}', '${assignmentId}', '${enrollment.studentId}')">
-                    Оценить
+                          onclick="showAssignmentGradingView('${courseInstanceId}', '${assignmentId}', '${enrollment.studentId}', 'assignmentsList')">
+                    Перейти
                   </button>
                 ` : !ai || ai.status === 'draft' ? `
                   <button class="btn btn-sm" style="font-size:10px; padding:3px 6px;"
@@ -718,14 +735,14 @@ function selectAssignment(assignmentId, courseInstanceId) {
 }
 
 // ============================================================================
-// ЗАДАНИЯ ПО ВСЕМ КУРСАМ
+// ЗАДАНИЯ ПО ВСЕМ ГРУППАМ
 // ============================================================================
 
 function renderTeacherAllAssignments() {
   const user = getCurrentUser();
   const myCourses = Data.courseInstances.filter(ci => ci.teacherId === user.id);
 
-  // Собираем все задания по всем курсам
+  // Собираем все задания по всем группам
   const allAssignmentsData = [];
   myCourses.forEach(instance => {
     const template = Data.getCourseTemplate(instance.courseTemplateId);
@@ -768,7 +785,7 @@ function renderTeacherAllAssignments() {
     <div class="main-header">
       <div>
         <h1 class="main-title">Задания</h1>
-        <div class="main-subtitle">Все задания по всем курсам</div>
+        <div class="main-subtitle">Все задания по всем группам</div>
       </div>
     </div>
 
@@ -992,7 +1009,7 @@ function openStudentApprovalModal(courseInstanceId, studentId) {
 
       <!-- Course info -->
       <div style="margin-bottom:12px; padding:10px; background:#f9fafb; border-radius:6px;">
-        <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">Курс</div>
+        <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">Группа</div>
         <div style="font-weight:500; font-size:13px;">${template.title}</div>
         <div style="font-size:11px; color:#6b7280;">${instance.cohort}</div>
         <div style="font-size:11px; color:#6b7280; margin-top:4px;">
@@ -1184,11 +1201,11 @@ function openStudentDetailModal(courseInstanceId, studentId) {
               ${statusBadge}
             </div>
 
-            ${ai && ai.status === 'submitted' ? `
+            ${ai ? `
               <div style="margin-top:8px;">
                 <button class="btn btn-primary btn-sm" style="font-size:11px; padding:4px 8px;"
-                        onclick="closeModal(); showQuickGrade('${courseInstanceId}', '${assignment.id}', '${studentId}')">
-                  Оценить
+                        onclick="closeModal(); showAssignmentGradingView('${courseInstanceId}', '${assignment.id}', '${studentId}', 'studentDetails')">
+                  Перейти
                 </button>
               </div>
             ` : ''}
@@ -1283,13 +1300,47 @@ function openAssignmentDetailModal(courseInstanceId, assignmentId) {
     </div>
 
     <!-- Assignment description (like student view) -->
-    ${assignment?.description ? `
+    ${assignment?.short_description || assignment?.description ? `
       <div style="margin-bottom:12px;">
         <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:#9ca3af; margin-bottom:4px;">Описание задания</div>
         <div style="font-size:13px; line-height:1.5; color:#374151; padding:10px; background:#f9fafb; border-radius:6px;">
-          ${assignment.description}
+          ${assignment.short_description || assignment.description}
         </div>
       </div>
+    ` : ''}
+
+    <!-- Detailed instruction in collapsible section -->
+    ${assignment?.detailed_instruction ? `
+      <details style="margin-bottom:12px;">
+        <summary style="cursor:pointer; font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:#9ca3af; margin-bottom:8px; padding:8px; background:#f9fafb; border-radius:6px;">
+          Подробная инструкция задания
+        </summary>
+        <div style="font-size:13px; line-height:1.6; color:#374151; padding:10px; background:#f9fafb; border-radius:6px; margin-top:8px;">
+          ${assignment.detailed_instruction}
+        </div>
+
+        ${assignment.instruction_videos && assignment.instruction_videos.length > 0 ? `
+          <div style="margin-top:12px;">
+            <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:#9ca3af; margin-bottom:8px;">Видео инструкции</div>
+            ${assignment.instruction_videos.map(url => `
+              <div style="font-size:12px; margin-bottom:4px;">
+                <a href="${url}" target="_blank" style="color:#2563eb; text-decoration:none;">📹 ${url}</a>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+
+        ${assignment.instruction_files && assignment.instruction_files.length > 0 ? `
+          <div style="margin-top:12px;">
+            <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:#9ca3af; margin-bottom:8px;">Файлы инструкции</div>
+            ${assignment.instruction_files.map(file => `
+              <div style="font-size:12px; margin-bottom:4px;">
+                <a href="${file.url}" download style="color:#2563eb; text-decoration:none;">📎 ${file.name}</a>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+      </details>
     ` : ''}
 
     <!-- Materials (like student view) -->
@@ -1306,16 +1357,6 @@ function openAssignmentDetailModal(courseInstanceId, assignmentId) {
       </div>
     ` : ''}
 
-    <!-- Submission types info -->
-    <div style="margin-bottom:16px;">
-      <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:#9ca3af; margin-bottom:4px;">Формат сдачи</div>
-      <div style="display:flex; gap:8px; flex-wrap:wrap;">
-        ${(assignment?.submissionType || []).map(type => {
-          const typeLabels = { text: '📝 Текст', file: '📁 Файл', link: '🔗 Ссылка' };
-          return `<span class="tag" style="font-size:11px;">${typeLabels[type] || type}</span>`;
-        }).join('')}
-      </div>
-    </div>
 
     <!-- Students list -->
     <div style="font-weight:500; font-size:13px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
@@ -1362,8 +1403,8 @@ function openAssignmentDetailModal(courseInstanceId, assignmentId) {
                 ` : ''}
                 ${ai?.status === 'submitted' ? `
                   <button class="btn btn-primary btn-sm" style="font-size:10px; padding:4px 10px;"
-                          onclick="closeModal(); showQuickGrade('${courseInstanceId}', '${assignmentId}', '${data.enrollment.studentId}')">
-                    ✓ Оценить
+                          onclick="closeModal(); showAssignmentGradingView('${courseInstanceId}', '${assignmentId}', '${data.enrollment.studentId}', 'studentDetails')">
+                    ✓ Перейти
                   </button>
                 ` : ai?.status === 'accepted' ? `
                   <button class="btn btn-ghost btn-sm" style="font-size:10px; padding:3px 6px;"
@@ -1496,7 +1537,9 @@ function renderClassProgressTab(courseInstanceId) {
               <td style="position:sticky; left:0; background:#fff; z-index:5; border-right:2px solid var(--color-border);">
                 <div style="display:flex; align-items:center; gap:6px;">
                   <span style="width:8px; height:8px; border-radius:50%; background:${data.riskLevel === 'green' ? '#16a34a' : data.riskLevel === 'yellow' ? '#f59e0b' : '#dc2626'};"></span>
-                  <span style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:120px;" title="${data.student?.name}">
+                  <span style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:120px; cursor:pointer; color:#2563eb; text-decoration:underline;"
+                        title="${data.student?.name}"
+                        onclick="openStudentDetailModal('${courseInstanceId}', '${data.enrollment.studentId}')">
                     ${data.student?.name || 'N/A'}
                   </span>
                 </div>
@@ -1529,7 +1572,7 @@ function renderClassProgressTab(courseInstanceId) {
 
                 return `
                   <td style="text-align:center; background:${cellBg}; color:${cellColor}; font-weight:500; cursor:pointer;"
-                      onclick="showQuickGrade('${courseInstanceId}', '${as.assignment.id}', '${data.enrollment.studentId}')"
+                      onclick="showAssignmentGradingView('${courseInstanceId}', '${as.assignment.id}', '${data.enrollment.studentId}', 'progressMatrix')"
                       title="${as.assignment.title}: ${as.status === 'accepted' ? 'Принято' : as.status === 'submitted' ? 'На проверке' : as.status === 'needs_revision' ? 'На доработке' : 'Не начато'}">
                     ${cellContent}
                   </td>
@@ -1568,6 +1611,296 @@ function renderClassProgressTab(courseInstanceId) {
 }
 
 // ============================================================================
+// ФОРМА ОЦЕНКИ ЗАДАНИЯ СТУДЕНТА
+// ============================================================================
+
+/**
+ * Render assignment grading view with student work and teacher feedback form
+ * @param {string} courseInstanceId - Course instance ID
+ * @param {string} assignmentId - Assignment template ID
+ * @param {string} studentId - Student user ID
+ * @param {string} returnTo - Where to return: 'studentDetails' | 'progressMatrix' | 'assignmentsList'
+ */
+function renderAssignmentGradingView(courseInstanceId, assignmentId, studentId, returnTo) {
+  returnToView = returnTo; // Store for back navigation
+
+  const instance = Data.getCourseInstance(courseInstanceId);
+  const template = Data.getCourseTemplate(instance.courseTemplateId);
+  const assignment = Data.getAssignmentTemplate(assignmentId);
+  const student = Data.getUserById(studentId);
+  const ai = Data.getAssignmentInstance(courseInstanceId, assignmentId, studentId);
+
+  if (!assignment || !student) {
+    alert('Задание или студент не найдены');
+    return;
+  }
+
+  // Build breadcrumbs based on where we came from
+  let breadcrumbsLabel = 'Прогресс группы';
+  if (returnTo === 'studentDetails') breadcrumbsLabel = 'Студенты';
+  else if (returnTo === 'assignmentsList') breadcrumbsLabel = 'Задания';
+
+  const content = `
+    ${renderBreadcrumbs([
+      { label: "Личный кабинет", onClick: "navigateTo('teacherDashboard')" },
+      { label: "Группы", onClick: "navigateTo('teacherCourses')" },
+      { label: template.title, onClick: "navigateTo('teacherCourseDetail', '${courseInstanceId}')" },
+      { label: breadcrumbsLabel, onClick: "returnToPreviousView('${courseInstanceId}')" },
+      { label: assignment.title }
+    ])}
+
+    <div style="margin-bottom:16px;">
+      <button class="btn btn-ghost btn-sm" onclick="returnToPreviousView('${courseInstanceId}')">
+        ← Назад
+      </button>
+    </div>
+
+    <div class="main-header">
+      <div>
+        <h1 class="main-title">${assignment.title}</h1>
+        <div class="main-subtitle">Студент: ${student.name}</div>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns: 2fr 1fr; gap:20px; margin-top:16px;">
+      <!-- Left column: Assignment details and student work -->
+      <div>
+        <!-- Assignment description -->
+        <div class="card" style="margin-bottom:16px; padding:16px;">
+          <h2 style="font-size:14px; font-weight:600; margin-bottom:12px;">Описание задания</h2>
+          <div style="font-size:13px; color:#6b7280; margin-bottom:12px;">
+            ${assignment.short_description || assignment.description || 'Нет описания'}
+          </div>
+
+          ${assignment.detailed_instruction ? `
+            <details style="margin-top:12px;">
+              <summary style="cursor:pointer; font-size:12px; font-weight:500; color:#2563eb; margin-bottom:8px;">
+                Подробная инструкция
+              </summary>
+              <div style="font-size:13px; line-height:1.6; color:#374151; padding:12px; background:#f9fafb; border-radius:6px; margin-top:8px;">
+                ${assignment.detailed_instruction}
+              </div>
+            </details>
+          ` : ''}
+
+          ${assignment.instruction_videos && assignment.instruction_videos.length > 0 ? `
+            <div style="margin-top:12px;">
+              <div style="font-size:11px; font-weight:500; color:#6b7280; margin-bottom:6px;">Видео инструкции</div>
+              ${assignment.instruction_videos.map(url => `
+                <div style="font-size:12px; margin-bottom:4px;">
+                  <a href="${url}" target="_blank" style="color:#2563eb; text-decoration:none;">📹 ${url}</a>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+
+          ${assignment.instruction_files && assignment.instruction_files.length > 0 ? `
+            <div style="margin-top:12px;">
+              <div style="font-size:11px; font-weight:500; color:#6b7280; margin-bottom:6px;">Файлы инструкции</div>
+              ${assignment.instruction_files.map(file => `
+                <div style="font-size:12px; margin-bottom:4px;">
+                  <a href="${file.url}" download style="color:#2563eb; text-decoration:none;">📎 ${file.name}</a>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+
+          ${assignment.materials && assignment.materials.length > 0 ? `
+            <div style="margin-top:12px;">
+              <div style="font-size:11px; font-weight:500; color:#6b7280; margin-bottom:6px;">Материалы</div>
+              <div style="display:flex; flex-direction:column; gap:4px;">
+                ${assignment.materials.map(m => `
+                  <a href="${m.url}" target="_blank" style="font-size:12px; color:#2563eb; text-decoration:none; display:flex; align-items:center; gap:6px;">
+                    📎 ${m.title}
+                  </a>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+
+        <!-- Student work -->
+        <div class="card" style="margin-bottom:16px; padding:16px;">
+          <h2 style="font-size:14px; font-weight:600; margin-bottom:12px;">Работа студента</h2>
+
+          ${ai?.submissionText ? `
+            <div style="margin-bottom:12px;">
+              <label class="field-label">Текст решения</label>
+              <div style="padding:12px; background:#f9fafb; border-radius:6px; font-size:13px; white-space:pre-wrap; border:1px solid var(--color-border);">
+                ${ai.submissionText}
+              </div>
+            </div>
+          ` : `
+            <div style="padding:20px; text-align:center; color:#9ca3af; font-size:12px; background:#f9fafb; border-radius:6px;">
+              Студент еще не сдал работу
+            </div>
+          `}
+
+          ${ai?.submissionFiles && ai.submissionFiles.length > 0 ? `
+            <div style="margin-bottom:12px;">
+              <label class="field-label">Прикрепленные файлы</label>
+              <div style="display:flex; flex-direction:column; gap:4px;">
+                ${ai.submissionFiles.map(file => `
+                  <a href="${file.url}" download style="font-size:12px; color:#2563eb; text-decoration:none;">
+                    📎 ${file.name}
+                  </a>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          ${ai?.submissionUrl ? `
+            <div style="margin-bottom:12px;">
+              <label class="field-label">Ссылка на решение</label>
+              <a href="${ai.submissionUrl}" target="_blank" style="font-size:12px; color:#2563eb; text-decoration:none; display:block;">
+                🔗 ${ai.submissionUrl}
+              </a>
+            </div>
+          ` : ''}
+
+          ${ai?.submittedAt ? `
+            <div style="margin-top:12px; padding:8px; background:#fffbeb; border-radius:6px; font-size:11px; color:#92400e;">
+              Дата сдачи: ${Data.formatDateTime(ai.submittedAt)}
+            </div>
+          ` : ''}
+        </div>
+      </div>
+
+      <!-- Right column: Grading form -->
+      <div>
+        ${ai && ai.status === 'submitted' ? `
+          <!-- Grading form for submitted work -->
+          <div class="card" style="padding:16px; position:sticky; top:20px;">
+            <h2 style="font-size:14px; font-weight:600; margin-bottom:12px;">Оценка работы</h2>
+
+            <div style="margin-bottom:12px;">
+              <label class="field-label">Оценка (0-${assignment.maxScore})</label>
+              <input type="number" id="grade-value-${assignmentId}-${studentId}" class="input"
+                     min="0" max="${assignment.maxScore}" placeholder="Введите оценку">
+            </div>
+
+            <div style="margin-bottom:16px;">
+              <label class="field-label">Отзыв преподавателя</label>
+              <textarea id="feedback-value-${assignmentId}-${studentId}" class="textarea"
+                        placeholder="Комментарий к работе студента" style="min-height:120px;"></textarea>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <button class="btn btn-primary"
+                      onclick="gradeAssignment('${courseInstanceId}', '${assignmentId}', '${studentId}', 'accepted')">
+                Принять работу
+              </button>
+              <button class="btn btn-ghost"
+                      onclick="gradeAssignment('${courseInstanceId}', '${assignmentId}', '${studentId}', 'needs_revision')">
+                Вернуть на доработку
+              </button>
+            </div>
+          </div>
+        ` : ai && (ai.status === 'accepted' || ai.status === 'needs_revision') ? `
+          <!-- Already graded -->
+          <div class="card" style="padding:16px; position:sticky; top:20px;">
+            <h2 style="font-size:14px; font-weight:600; margin-bottom:12px;">Оценка работы</h2>
+
+            <div style="margin-bottom:12px; padding:12px; background:${ai.status === 'accepted' ? '#f0fdf4' : '#fef2f2'}; border-radius:6px;">
+              <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">Статус</div>
+              <div style="font-weight:600; color:${ai.status === 'accepted' ? '#16a34a' : '#dc2626'};">
+                ${ai.status === 'accepted' ? 'Принято' : 'На доработке'}
+              </div>
+            </div>
+
+            ${ai.grade !== undefined ? `
+              <div style="margin-bottom:12px;">
+                <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">Оценка</div>
+                <div style="font-size:24px; font-weight:700; color:#16a34a;">
+                  ${ai.grade} / ${assignment.maxScore}
+                </div>
+              </div>
+            ` : ''}
+
+            ${ai.teacherComment || ai.feedback ? `
+              <div style="margin-bottom:12px;">
+                <div style="font-size:11px; color:#6b7280; margin-bottom:4px;">Отзыв преподавателя</div>
+                <div style="padding:10px; background:#f9fafb; border-radius:6px; font-size:12px;">
+                  ${ai.teacherComment || ai.feedback}
+                </div>
+              </div>
+            ` : ''}
+
+            ${ai.gradedAt ? `
+              <div style="font-size:10px; color:#9ca3af; margin-top:12px;">
+                Оценено: ${Data.formatDateTime(ai.gradedAt)}
+              </div>
+            ` : ''}
+          </div>
+        ` : `
+          <!-- Not submitted yet -->
+          <div class="card" style="padding:16px; position:sticky; top:20px; text-align:center;">
+            <div style="font-size:40px; margin-bottom:12px;">📝</div>
+            <div style="font-size:13px; color:#6b7280;">
+              Студент еще не сдал работу
+            </div>
+          </div>
+        `}
+
+        <!-- Assignment meta info -->
+        <div class="card" style="margin-top:16px; padding:12px; background:#f9fafb;">
+          <div style="font-size:11px; color:#6b7280; margin-bottom:6px;">Параметры задания</div>
+          <div style="font-size:12px; display:flex; flex-direction:column; gap:4px;">
+            <div>Тип: ${Data.formatAssignmentType(assignment.type)}</div>
+            <div>Макс. баллов: ${assignment.maxScore}</div>
+            <div>Формат: ${assignment.deliveryMode === 'in_person' ? '📍 Очное' : '💻 Самостоятельное'}</div>
+            <div>${assignment.isMandatory ? 'Обязательное' : 'Необязательное'}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return content;
+}
+
+/**
+ * Return to previous view based on returnToView state
+ */
+function returnToPreviousView(courseInstanceId) {
+  // Clear grading view state
+  gradingViewStudentId = null;
+  selectedAssignmentId = null;
+
+  if (returnToView === 'studentDetails') {
+    // Return to student details modal is tricky - just go back to course detail
+    switchTeacherCourseTab('students', courseInstanceId);
+  } else if (returnToView === 'progressMatrix') {
+    switchTeacherCourseTab('progress', courseInstanceId);
+  } else if (returnToView === 'assignmentsList') {
+    switchTeacherCourseTab('assignments', courseInstanceId);
+  } else {
+    // Default: go back to course detail
+    navigateTo('teacherCourseDetail', courseInstanceId);
+  }
+  returnToView = null;
+}
+
+/**
+ * Grade assignment and update status
+ */
+function gradeAssignment(courseInstanceId, assignmentId, studentId, newStatus) {
+  const gradeValue = document.getElementById(`grade-value-${assignmentId}-${studentId}`)?.value;
+  const feedbackValue = document.getElementById(`feedback-value-${assignmentId}-${studentId}`)?.value;
+
+  if (!gradeValue && newStatus === 'accepted') {
+    alert('Пожалуйста, укажите оценку');
+    return;
+  }
+
+  // In a real app, this would update the backend
+  alert(`Работа ${newStatus === 'accepted' ? 'принята' : 'возвращена на доработку'}! Оценка: ${gradeValue || 'не указана'} (демо)`);
+
+  // Return to previous view
+  returnToPreviousView(courseInstanceId);
+}
+
+// ============================================================================
 // ПРОСМОТР СТУДЕНТОВ ЗАПЛАНИРОВАННОГО КУРСА
 // ============================================================================
 
@@ -1594,7 +1927,7 @@ function viewPlannedCourseStudents(instanceId) {
     </div>
 
     <div style="margin-top:16px;">
-      <!-- Информация о курсе -->
+      <!-- Информация о группе -->
       <div class="card" style="margin-bottom:16px; padding:12px;">
         <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; font-size:12px;">
           <div>
